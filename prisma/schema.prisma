@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Upload {
+  id           String        @id @default(cuid())
+  filename     String
+  source       String        // "nab" | "wise"
+  rowCount     Int?
+  status       String        @default("pending")
+  errorMsg     String?
+  createdAt    DateTime      @default(now())
+  completedAt  DateTime?
+  transactions Transaction[]
+}
+
+model Transaction {
+  id                 String                  @id @default(cuid())
+  source             String                  // "nab" | "wise"
+  uploadId           String?
+  upload             Upload?                 @relation(fields: [uploadId], references: [id])
+  date               DateTime
+  amount             Float
+  balance            Float?
+  transactionType    String?
+  transactionDetails String?
+  merchantName       String?
+  accountNumber      String?
+  category           String?
+  subcategory        String?
+  categorySource     String?                 // "llm" | "manual" | "rule" | "csv_import"
+  categoryConfidence Float?
+  dedupHash          String?                 @unique
+  rdEligible         Boolean                 @default(false)
+  rdPercentage       Float?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  processedOn        DateTime?
+  attachments        TransactionAttachment[]
+
+  @@index([date])
+  @@index([category])
+  @@index([source])
+}
+
+model SubcategoryRdConfig {
+  id          String @id @default(cuid())
+  category    String
+  subcategory String
+  rdPercent   Float  @default(0)
+
+  @@unique([category, subcategory])
+}
+
+model TransactionAttachment {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  filename      String
+  storedPath    String
+  fileSize      Int?
+  uploadedAt    DateTime    @default(now())
+}
+
+model CategoryRule {
+  id          String   @id @default(cuid())
+  pattern     String
+  category    String
+  subcategory String?
+  learnedFrom String?
+  createdAt   DateTime @default(now())
+}
