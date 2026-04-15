@@ -5,6 +5,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model Upload {
@@ -38,6 +39,7 @@ model Transaction {
   dedupHash          String?                 @unique
   rdEligible         Boolean                 @default(false)
   rdPercentage       Float?
+  notes              String?
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
   processedOn        DateTime?
@@ -74,4 +76,26 @@ model CategoryRule {
   subcategory String?
   learnedFrom String?
   createdAt   DateTime @default(now())
+}
+
+model ForecastOverride {
+  id                  String   @id @default(cuid())
+  category            String
+  subcategory         String
+  customLabel         String?  // display label for a custom subcategory
+  customCategoryLabel String?  // set only for fully custom (forecast-only) categories
+  month               String   // "YYYY-MM"
+  amount              Float    // same sign convention as transactions (negative = expense)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([category, subcategory, month])
+  @@index([month])
+}
+
+model ForecastScenario {
+  id        String   @id @default(cuid())
+  name      String
+  snapshot  String   // JSON array of ForecastOverride rows
+  createdAt DateTime @default(now())
 }

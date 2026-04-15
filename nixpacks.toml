@@ -1,0 +1,10 @@
+[phases.setup]
+# Include Python + build tools so better-sqlite3 can compile its native bindings on Linux
+nixPkgs = ["python3", "gcc", "gnumake"]
+
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+# prisma generate must run before next build (generates the Prisma client)
+cmds = ["npx prisma generate", "npm run build"]
