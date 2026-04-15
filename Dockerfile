@@ -5,13 +5,10 @@ RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt
 
 WORKDIR /app
 
-# Install deps first (better layer caching)
+# Copy schema before installing so postinstall (prisma generate) can find it
+COPY prisma ./prisma
 COPY package.json package-lock.json ./
 RUN npm ci
-
-# Generate Prisma client
-COPY prisma ./prisma
-RUN npx prisma generate
 
 # Copy rest of source and build Next.js
 COPY . .
