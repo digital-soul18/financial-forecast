@@ -1,5 +1,5 @@
 [phases.install]
-cmds = ["npm install"]
+cmds = ["npm ci"]
 
 [phases.build]
 # prisma generate must run before next build (generates the Prisma client)
