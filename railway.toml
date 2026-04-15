@@ -1,8 +1,4 @@
-[build]
-builder = "nixpacks"
-
 [deploy]
-# Run DB migrations against the volume-mounted SQLite file, then start Next.js
 startCommand = "npx prisma migrate deploy && npm start"
 healthcheckPath = "/"
 healthcheckTimeout = 300
@@ -10,6 +6,4 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
 [[volumes]]
-# Persistent volume — survives redeploys and restarts
-# Mount path must match DATA_DIR and the path in DATABASE_URL
 mountPath = "/data"
