@@ -20,4 +20,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Migrations run at container start so new schema changes apply on each deploy
-CMD ["sh", "-c", "npx prisma migrate deploy && npx next start -p ${PORT:-3000} -H 0.0.0.0"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/next start -p ${PORT:-3000} -H 0.0.0.0"]
