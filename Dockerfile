@@ -15,9 +15,14 @@ COPY . .
 RUN npm run build
 
 ENV NODE_ENV=production
-# Railway injects PORT — Next.js must bind to it or the healthcheck fails
-ENV PORT=3000
+# Next.js standalone server respects PORT and HOSTNAME env vars
+ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
 
-# Migrations run at container start so new schema changes apply on each deploy
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/next start -p ${PORT:-3000} -H 0.0.0.0"]
+# Copy static assets into the standalone bundle location expected by server.js
+RUN cp -r .next/static .next/standalone/.next/static && \
+    cp -r public .next/standalone/public
+
+# Migrations run at container start; then launch the standalone server
+# PORT is injected by Railway at runtime
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node .next/standalone/server.js"]
