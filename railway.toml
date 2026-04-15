@@ -1,5 +1,5 @@
 [deploy]
-startCommand = "npx prisma migrate deploy && npm start"
+startCommand = "node_modules/.bin/prisma migrate deploy; echo \"[diag] prisma exit=$?\"; echo \"[diag] PORT=${PORT} NODE_ENV=${NODE_ENV}\"; node_modules/.bin/next start -p ${PORT:-3000} -H 0.0.0.0; echo \"[diag] next exit=$?\""
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
