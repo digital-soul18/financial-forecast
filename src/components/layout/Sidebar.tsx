@@ -11,6 +11,8 @@ import {
   FlaskConical,
   Settings,
   Beaker,
+  Calculator,
+  Scale,
 } from 'lucide-react';
 
 const nav = [
@@ -18,6 +20,8 @@ const nav = [
   { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/charts', label: 'Charts', icon: BarChart2 },
   { href: '/forecast', label: 'Forecast', icon: TrendingUp },
+  { href: '/voice-ai-calculator', label: 'AI Calculator', icon: Calculator },
+  { href: '/cost-comparison', label: 'Cost Comparison', icon: Scale },
   { href: '/reports/rd', label: 'R&D Report', icon: FlaskConical },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
