@@ -1,14 +1,19 @@
-import { Resend } from 'resend';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
-let _resend: Resend | null = null;
+let _ses: SESClient | null = null;
 
-function getResend(): Resend {
-  if (!_resend) {
-    const key = process.env.RESEND_API_KEY;
-    if (!key) throw new Error('RESEND_API_KEY environment variable is not set');
-    _resend = new Resend(key);
+function getSes(): SESClient {
+  if (!_ses) {
+    const region = process.env.AWS_SES_REGION ?? process.env.AWS_REGION ?? 'ap-southeast-2';
+    _ses = new SESClient({
+      region,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
   }
-  return _resend;
+  return _ses;
 }
 
 export async function sendEmail(opts: {
@@ -16,13 +21,16 @@ export async function sendEmail(opts: {
   subject: string;
   html: string;
 }): Promise<void> {
-  const from = process.env.RESEND_FROM ?? 'Voice AI Solutions <noreply@voiceaisolutions.com.au>';
-  const resend = getResend();
-  const { error } = await resend.emails.send({
-    from,
-    to: opts.to,
-    subject: opts.subject,
-    html: opts.html,
+  const from = process.env.SES_FROM ?? 'Voice AI Solutions <noreply@voiceaisolutions.com.au>';
+
+  const command = new SendEmailCommand({
+    Source: from,
+    Destination: { ToAddresses: [opts.to] },
+    Message: {
+      Subject: { Data: opts.subject, Charset: 'UTF-8' },
+      Body: { Html: { Data: opts.html, Charset: 'UTF-8' } },
+    },
   });
-  if (error) throw new Error(`Email send failed: ${error.message}`);
+
+  await getSes().send(command);
 }
