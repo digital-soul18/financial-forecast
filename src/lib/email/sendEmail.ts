@@ -1,19 +1,21 @@
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 
-let _ses: SESClient | null = null;
+let _transporter: Transporter | null = null;
 
-function getSes(): SESClient {
-  if (!_ses) {
-    const region = process.env.AWS_SES_REGION ?? process.env.AWS_REGION ?? 'ap-southeast-2';
-    _ses = new SESClient({
-      region,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+function getTransporter(): Transporter {
+  if (!_transporter) {
+    _transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST ?? `email-smtp.ap-southeast-2.amazonaws.com`,
+      port: Number(process.env.SMTP_PORT ?? 587),
+      secure: false, // STARTTLS on port 587
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
     });
   }
-  return _ses;
+  return _transporter;
 }
 
 export async function sendEmail(opts: {
@@ -22,15 +24,10 @@ export async function sendEmail(opts: {
   html: string;
 }): Promise<void> {
   const from = process.env.SES_FROM ?? 'Voice AI Solutions <noreply@voiceaisolutions.com.au>';
-
-  const command = new SendEmailCommand({
-    Source: from,
-    Destination: { ToAddresses: [opts.to] },
-    Message: {
-      Subject: { Data: opts.subject, Charset: 'UTF-8' },
-      Body: { Html: { Data: opts.html, Charset: 'UTF-8' } },
-    },
+  await getTransporter().sendMail({
+    from,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
   });
-
-  await getSes().send(command);
 }
