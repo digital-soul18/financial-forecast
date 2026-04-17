@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans, DM_Mono } from 'next/font/google';
 import './globals.css';
-import { Sidebar } from '@/components/layout/Sidebar';
+import { AppShell } from '@/components/layout/AppShell';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 const inter = Inter({
@@ -37,8 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-full bg-gray-950 text-gray-100 font-sans">
         <TooltipProvider>
-          <Sidebar />
-          <main className="ml-56 min-h-screen">{children}</main>
+          <AppShell>{children}</AppShell>
         </TooltipProvider>
       </body>
     </html>

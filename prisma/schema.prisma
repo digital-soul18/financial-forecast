@@ -98,3 +98,91 @@ model ForecastScenario {
   snapshot  String   // JSON array of ForecastOverride rows
   createdAt DateTime @default(now())
 }
+
+// ─── Contractor Management Module ────────────────────────────────────────────
+
+model User {
+  id         String        @id @default(cuid())
+  email      String        @unique
+  name       String?
+  role       String        @default("contractor") // "admin" | "contractor"
+  isActive   Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  contractor Contractor?
+  sessions   UserSession[]
+  otpTokens  OtpToken[]
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // SHA256(jti) — enables revocation without exposing secret
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([tokenHash])
+}
+
+model OtpToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String   // 6-digit string
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Contractor {
+  id            String         @id @default(cuid())
+  userId        String         @unique
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  dailyRate     Float
+  currency      String         @default("AUD")
+  startDate     DateTime
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  leaveRequests LeaveRequest[]
+  payslips      Payslip[]
+}
+
+model LeaveRequest {
+  id           String     @id @default(cuid())
+  contractorId String
+  contractor   Contractor @relation(fields: [contractorId], references: [id])
+  leaveDate    DateTime   // single day per record
+  reason       String
+  status       String     @default("pending") // "pending" | "approved" | "denied"
+  adminNote    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([contractorId])
+  @@index([status])
+}
+
+model Payslip {
+  id            String     @id @default(cuid())
+  contractorId  String
+  contractor    Contractor @relation(fields: [contractorId], references: [id])
+  periodMonth   Int        // 1–12
+  periodYear    Int
+  workingDays   Int        // Mon–Fri in period (pro-rated if start date mid-month)
+  leaveDays     Int        // approved Mon–Fri leave days deducted
+  billableDays  Int        // workingDays - leaveDays
+  dailyRateSnap Float      // snapshot at generation time
+  grossAmount   Float      // workingDays × dailyRateSnap
+  deductions    Float      // leaveDays × dailyRateSnap
+  netAmount     Float      // billableDays × dailyRateSnap
+  paymentStatus String     @default("pending") // "pending" | "paid"
+  paidAmount    Float?
+  paidAt        DateTime?
+  generatedAt   DateTime   @default(now())
+
+  @@unique([contractorId, periodMonth, periodYear])
+  @@index([contractorId])
+  @@index([paymentStatus])
+}
