@@ -68,15 +68,24 @@ export async function POST(req: NextRequest) {
       });
     });
 
-    // Send invite email (non-blocking)
+    // Send invite email — await so the caller knows if it failed
     const appUrl = process.env.APP_URL ?? '';
-    sendEmail({
-      to: contractor.user.email,
-      subject: `You've been invited to the Voice AI Solutions Contractor Portal`,
-      html: inviteEmailHtml({ name: contractor.name, appUrl }),
-    }).catch((err) => console.error('Invite email failed:', err));
+    let emailError: string | null = null;
+    try {
+      await sendEmail({
+        to: contractor.user.email,
+        subject: `You've been invited to the Voice AI Solutions Contractor Portal`,
+        html: inviteEmailHtml({ name: contractor.name, appUrl }),
+      });
+    } catch (err) {
+      emailError = String(err);
+      console.error('Invite email failed:', err);
+    }
 
-    return NextResponse.json({ contractor: serializeContractor(contractor) }, { status: 201 });
+    return NextResponse.json(
+      { contractor: serializeContractor(contractor), emailError },
+      { status: 201 },
+    );
   } catch (err) {
     console.error('POST /api/contractors error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });

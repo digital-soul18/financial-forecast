@@ -4,7 +4,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { UserPlus, Users, ChevronRight, CircleDot, CircleOff } from 'lucide-react';
+import { UserPlus, Users, ChevronRight, CircleDot, CircleOff, Mail, AlertTriangle } from 'lucide-react';
 import type { ContractorRecord } from '@/types/contractor';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -27,6 +27,9 @@ export default function ContractorsPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
+  const [emailWarning, setEmailWarning] = useState('');
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [resendMessage, setResendMessage] = useState<{ id: string; msg: string; ok: boolean } | null>(null);
 
   const activeContractors = contractors.filter((c) => c.isActive);
   const pendingPayslips = 0; // Placeholder — would need a separate API call
@@ -54,12 +57,32 @@ export default function ContractorsPage() {
       });
       const body = await res.json();
       if (!res.ok) { setFormError(body.error ?? 'Failed to add contractor'); return; }
-      setFormSuccess(`${form.name} has been added and sent an invite email.`);
+      if (body.emailError) {
+        setEmailWarning(`${form.name} was added but the invite email failed: ${body.emailError}. Use "Resend Invite" to retry.`);
+      } else {
+        setFormSuccess(`${form.name} has been added and sent an invite email.`);
+      }
       setForm({ name: '', email: '', dailyRate: '', startDate: '' });
       setShowForm(false);
       mutate();
     } finally {
       setFormLoading(false);
+    }
+  }
+
+  async function handleResendInvite(contractor: ContractorRecord) {
+    setResendingId(contractor.id);
+    setResendMessage(null);
+    try {
+      const res = await fetch(`/api/contractors/${contractor.id}/invite`, { method: 'POST' });
+      const body = await res.json();
+      if (!res.ok) {
+        setResendMessage({ id: contractor.id, msg: body.error ?? 'Failed to send', ok: false });
+      } else {
+        setResendMessage({ id: contractor.id, msg: 'Invite sent!', ok: true });
+      }
+    } finally {
+      setResendingId(null);
     }
   }
 
@@ -122,10 +145,16 @@ export default function ContractorsPage() {
         </div>
       </div>
 
-      {/* Success message */}
+      {/* Success / warning messages */}
       {formSuccess && (
         <div className="bg-emerald-950 border border-emerald-800 text-emerald-300 text-sm px-4 py-3 rounded-xl">
           ✓ {formSuccess}
+        </div>
+      )}
+      {emailWarning && (
+        <div className="bg-amber-950 border border-amber-700 text-amber-300 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{emailWarning}</span>
         </div>
       )}
 
@@ -248,6 +277,20 @@ export default function ContractorsPage() {
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2 justify-end">
+                      {resendMessage?.id === c.id && (
+                        <span className={`text-xs ${resendMessage.ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {resendMessage.msg}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => handleResendInvite(c)}
+                        disabled={resendingId === c.id}
+                        title="Resend invite email"
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-300 px-2 py-1 rounded hover:bg-gray-700 transition-colors disabled:opacity-40"
+                      >
+                        <Mail className="w-3 h-3" />
+                        {resendingId === c.id ? '…' : 'Invite'}
+                      </button>
                       <button
                         onClick={() => handleToggleActive(c)}
                         className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700 transition-colors"
