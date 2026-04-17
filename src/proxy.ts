@@ -67,10 +67,12 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   }
 
   // Role-based routing
-  if (payload.role === 'contractor' && !pathname.startsWith('/contractor')) {
+  // Note: check for '/contractor/' (with trailing slash) so '/contractors' (admin page) is NOT caught
+  const isContractorPortalPath = pathname === '/contractor' || pathname.startsWith('/contractor/');
+  if (payload.role === 'contractor' && !isContractorPortalPath) {
     return NextResponse.redirect(new URL('/contractor/portal', request.url));
   }
-  if (payload.role === 'admin' && pathname.startsWith('/contractor')) {
+  if (payload.role === 'admin' && isContractorPortalPath) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
