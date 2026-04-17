@@ -13,6 +13,7 @@ import {
   Beaker,
   Calculator,
   Scale,
+  Globe,
 } from 'lucide-react';
 
 const nav = [
@@ -22,6 +23,7 @@ const nav = [
   { href: '/forecast', label: 'Forecast', icon: TrendingUp },
   { href: '/voice-ai-calculator', label: 'AI Calculator', icon: Calculator },
   { href: '/cost-comparison', label: 'Cost Comparison', icon: Scale },
+  { href: '/market-comparison', label: 'Market Comparison', icon: Globe },
   { href: '/reports/rd', label: 'R&D Report', icon: FlaskConical },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
