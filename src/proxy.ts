@@ -16,6 +16,7 @@ const PUBLIC_PREFIXES = [
   '/api/auth/send-otp',
   '/api/auth/verify-otp',
   '/api/auth/logout',
+  '/api/admin/upload-db',
 ];
 
 // Pattern for HMAC-protected leave action links (no cookie needed)
