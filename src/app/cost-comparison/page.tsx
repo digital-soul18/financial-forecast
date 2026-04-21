@@ -269,7 +269,7 @@ export default function CostComparisonPage() {
               tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: 8 }}
-              formatter={(v: number) => [aud(v, 0), 'Daily cost']}
+              formatter={(v) => [aud(Number(v ?? 0), 0), 'Daily cost']}
               cursor={{ fill: 'rgba(255,255,255,0.03)' }}
             />
             <Bar dataKey="cost" radius={[4, 4, 0, 0]} maxBarSize={120}>
@@ -314,7 +314,7 @@ export default function CostComparisonPage() {
               tickFormatter={v => v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(1)}M` : `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: 8 }}
-              formatter={(v: number) => [aud(v, 0), '']}
+              formatter={(v) => [aud(Number(v ?? 0), 0), '']}
               cursor={{ fill: 'rgba(255,255,255,0.03)' }}
             />
             <Legend wrapperStyle={{ color: '#9ca3af', fontSize: 11 }} />

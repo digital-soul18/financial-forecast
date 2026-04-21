@@ -164,9 +164,9 @@ const barItems: BarItem[] = [
     note: 'Setup not published · No specific medical compliance add-on · Minimum A$24,000/yr at this volume' },
   { name: 'VOXY by Vocal', cpc: 'A$4.93 / call', pct: 100, monthly: 'A$2,709/mo', color: '#f59e0b',
     note: 'Flag fall + per-minute model becomes severely uneconomical at volume · A$32,500 annual cost' },
-  { name: 'Sophiie AI', cpc: 'N/A', pct: 0, monthly: '', color: '', dim: true,
+  { name: 'Sophiie AI', cpc: 'N/A', pct: 0, monthly: '', color: '', dim: true, note: '',
     na: 'Standard plans use offshore infrastructure. AU-compliant enterprise plan estimated at ~A$50,000+ setup — not comparable at this scale.' },
-  { name: 'Johnni AI', cpc: 'N/A', pct: 0, monthly: '', color: '', dim: true,
+  { name: 'Johnni AI', cpc: 'N/A', pct: 0, monthly: '', color: '', dim: true, note: '',
     na: 'Data hosting location not confirmed as Australian. No medical system integrations. Cannot be assessed for healthcare compliance.' },
 ];
 
