@@ -66,14 +66,17 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return res;
   }
 
-  // Role-based routing
+  // Role-based routing — only redirect page routes, never API routes
   // Note: check for '/contractor/' (with trailing slash) so '/contractors' (admin page) is NOT caught
   const isContractorPortalPath = pathname === '/contractor' || pathname.startsWith('/contractor/');
-  if (payload.role === 'contractor' && !isContractorPortalPath) {
-    return NextResponse.redirect(new URL('/contractor/portal', request.url));
-  }
-  if (payload.role === 'admin' && isContractorPortalPath) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  const isApiRoute = pathname.startsWith('/api/');
+  if (!isApiRoute) {
+    if (payload.role === 'contractor' && !isContractorPortalPath) {
+      return NextResponse.redirect(new URL('/contractor/portal', request.url));
+    }
+    if (payload.role === 'admin' && isContractorPortalPath) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
   }
 
   // Forward user identity to route handlers via headers
