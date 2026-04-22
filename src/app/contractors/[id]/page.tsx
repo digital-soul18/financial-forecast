@@ -29,7 +29,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function ContractorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data, mutate } = useSWR<{ contractor: ContractorWithDetails }>(
+  const { data, mutate, isLoading } = useSWR<{ contractor: ContractorWithDetails; error?: string }>(
     `/api/contractors/${id}`,
     fetcher,
   );
@@ -143,11 +143,9 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
     mutate();
   }
 
-  if (!contractor) {
-    return (
-      <div className="p-6 text-gray-400 text-sm">Loading…</div>
-    );
-  }
+  if (isLoading) return <div className="p-6 text-gray-400 text-sm">Loading…</div>;
+  if (data?.error) return <div className="p-6 text-red-400 text-sm">Error: {data.error}</div>;
+  if (!contractor) return <div className="p-6 text-gray-400 text-sm">Contractor not found.</div>;
 
   const payslips: Payslip[] = contractor.payslips ?? [];
   const leaveRequests: LeaveRequest[] = contractor.leaveRequests ?? [];
@@ -340,7 +338,10 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         )}
 
         {leaveRequests.length === 0 ? (
-          <div className="py-12 text-center text-gray-500 text-sm">No leave requests.</div>
+          <div className="py-12 text-center space-y-1">
+            <p className="text-gray-500 text-sm">No leave requests yet.</p>
+            <p className="text-gray-600 text-xs">The contractor can request leave from their portal, or use "Add Leave" above.</p>
+          </div>
         ) : (
           <table className="w-full">
             <thead>
@@ -363,17 +364,17 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
                   <td className="px-4 py-3.5 text-sm text-gray-500 italic">{lr.adminNote ?? '—'}</td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-1 justify-end">
-                      {lr.status === 'pending' && (
-                        <>
-                          <button onClick={() => handleLeaveStatusChange(lr, 'approved')}
-                            className="p-1.5 text-emerald-400 hover:bg-emerald-950 rounded transition-colors" title="Approve">
-                            <CheckCircle2 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleLeaveStatusChange(lr, 'denied')}
-                            className="p-1.5 text-red-400 hover:bg-red-950 rounded transition-colors" title="Deny">
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        </>
+                      {lr.status !== 'approved' && (
+                        <button onClick={() => handleLeaveStatusChange(lr, 'approved')}
+                          className="p-1.5 text-emerald-400 hover:bg-emerald-950 rounded transition-colors" title="Approve">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {lr.status !== 'denied' && (
+                        <button onClick={() => handleLeaveStatusChange(lr, 'denied')}
+                          className="p-1.5 text-red-400 hover:bg-red-950 rounded transition-colors" title="Deny">
+                          <XCircle className="w-4 h-4" />
+                        </button>
                       )}
                       <button onClick={() => handleLeaveDelete(lr.id)}
                         className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-950 rounded transition-colors" title="Delete">
