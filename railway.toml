@@ -3,6 +3,7 @@ healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
+startCommand = "npx prisma migrate resolve --applied 20260417000000_add_contractor_module 2>/dev/null || true && npx prisma migrate deploy && node .next/standalone/server.js"
 
 [[volumes]]
 mountPath = "/data"
