@@ -24,10 +24,12 @@ export async function sendEmail(opts: {
   html: string;
 }): Promise<void> {
   const from = process.env.SES_FROM ?? 'Voice AI Solutions <noreply@voiceaisolutions.com.au>';
-  await getTransporter().sendMail({
+  console.log(`[sendEmail] sending to=${opts.to} subject="${opts.subject}" from=${from} host=${process.env.SMTP_HOST}`);
+  const info = await getTransporter().sendMail({
     from,
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
   });
+  console.log(`[sendEmail] sent messageId=${info.messageId}`);
 }
