@@ -3,7 +3,6 @@ healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
-startCommand = "echo cwd=$PWD && find . -name server.js 2>/dev/null | head -5 && ls -la .next/ 2>&1 && echo PORT=$PORT"
 
 [[volumes]]
 mountPath = "/data"

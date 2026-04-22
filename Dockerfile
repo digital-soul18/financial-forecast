@@ -23,6 +23,5 @@ EXPOSE 3000
 RUN cp -r .next/static .next/standalone/.next/static && \
     cp -r public .next/standalone/public
 
-# Migrations run at container start; then launch the standalone server
 # PORT is injected by Railway at runtime
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node .next/standalone/server.js"]
+CMD ["node", ".next/standalone/server.js"]
