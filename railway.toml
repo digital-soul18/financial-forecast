@@ -3,7 +3,7 @@ healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
-startCommand = "npx prisma db push --accept-data-loss && HOSTNAME=0.0.0.0 node .next/standalone/server.js"
+startCommand = "npx prisma db push --accept-data-loss && echo '=== DB synced ===' && ls .next/standalone/server.js 2>&1 && echo '=== Starting server on PORT='$PORT' ===' && HOSTNAME=0.0.0.0 node .next/standalone/server.js"
 
 [[volumes]]
 mountPath = "/data"
