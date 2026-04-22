@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { inviteEmailHtml } from '@/lib/email/templates';
+import { getAppUrl } from '@/lib/appUrl';
 
 function serializeContractor(c: {
   id: string; userId: string; name: string; dailyRate: number; currency: string;
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Send invite email — await so the caller knows if it failed
-    const appUrl = process.env.APP_URL ?? '';
+    const appUrl = getAppUrl();
     let emailError: string | null = null;
     try {
       await sendEmail({

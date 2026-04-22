@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { getPayslipWorkingDays, getApprovedLeaveDays } from './workingDays';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { payslipEmailHtml } from '@/lib/email/templates';
+import { getAppUrl } from '@/lib/appUrl';
 
 const MONTH_NAMES = [
   '', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -70,7 +71,7 @@ export async function generatePayslipForContractor(
   });
 
   // Send payslip email asynchronously — don't block
-  const appUrl = process.env.APP_URL ?? '';
+  const appUrl = getAppUrl();
   sendEmail({
     to: contractor.user.email,
     subject: `Your payslip for ${MONTH_NAMES[month]} ${year} — ${contractor.currency} ${netAmount.toFixed(2)}`,

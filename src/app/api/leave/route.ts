@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { leaveRequestEmailHtml } from '@/lib/email/templates';
 import { signLeaveToken } from '@/lib/auth/hmac';
+import { getAppUrl } from '@/lib/appUrl';
 import { format } from 'date-fns';
 
 function serializeLeave(lr: {
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Notify admin via email with approve/deny links
-    const appUrl = process.env.APP_URL ?? '';
+    const appUrl = getAppUrl();
     const adminUser = await prisma.user.findFirst({ where: { role: 'admin', isActive: true } });
 
     if (adminUser) {
