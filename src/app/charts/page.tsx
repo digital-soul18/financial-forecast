@@ -75,6 +75,21 @@ function buildMonthlyTable(transactions: Transaction[], months: string[]) {
     .filter(r => r.byMonth.some(v => v !== 0));
 }
 
+/** Month-end account balance: last transaction in or before `mo` that has a balance value. */
+function getMonthEndBalance(srcTxns: Transaction[], mo: string): number | null {
+  let result: number | null = null;
+  for (const t of srcTxns) {
+    if (t.date.slice(0, 7) > mo) break; // array must be sorted asc by date
+    if (t.balance != null) result = t.balance;
+  }
+  return result;
+}
+
+const SOURCE_LABEL: Record<string, string> = { nab: 'NAB', wise: 'Wise' };
+function fmtSource(src: string) {
+  return (SOURCE_LABEL[src] ?? src.toUpperCase()) + ' — Cash';
+}
+
 function defaultRange() {
   const now = new Date();
   const end = toYM(now);
@@ -86,6 +101,7 @@ interface Transaction {
   id: string;
   date: string;
   amount: number;
+  balance?: number | null;
   category: string | null;
   subcategory: string | null;
   transactionDetails: string | null;
@@ -276,6 +292,48 @@ export default function ChartsPage() {
   function applyPlPreset(months: number) {
     const now = new Date();
     setPlRange({ end: toYM(now), start: toYM(new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)) });
+  }
+
+  // ── Balance Sheet ─────────────────────────────────────────────────────────────
+  const [bsRange, setBsRange] = useState(defaultRange);
+
+  const bsMonthCols = getMonthsBetween(bsRange.start, bsRange.end);
+
+  // Group + sort transactions by source for O(n) month-end balance lookups
+  const bsSrcMap: Record<string, Transaction[]> = {};
+  for (const t of transactions) {
+    if (!bsSrcMap[t.source]) bsSrcMap[t.source] = [];
+    bsSrcMap[t.source].push(t);
+  }
+  for (const src of Object.keys(bsSrcMap)) {
+    bsSrcMap[src].sort((a, b) => a.date.localeCompare(b.date));
+  }
+  const bsSources = Object.keys(bsSrcMap).sort();
+
+  // All transactions sorted chronologically for cumulative retained earnings
+  const bsAllSorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
+
+  const bsData = bsMonthCols.map(mo => {
+    const cashBySrc: Record<string, number | null> = {};
+    let totalCash = 0;
+    let anyCash = false;
+    for (const src of bsSources) {
+      const bal = getMonthEndBalance(bsSrcMap[src] ?? [], mo);
+      cashBySrc[src] = bal;
+      if (bal !== null) { totalCash += bal; anyCash = true; }
+    }
+    // Cumulative retained earnings = all revenue − all expenses from inception through mo
+    let retained = 0;
+    for (const t of bsAllSorted) {
+      if (t.date.slice(0, 7) > mo) break;
+      if (t.category !== 'internal_transfers') retained += t.amount;
+    }
+    return { mo, cashBySrc, totalCash: anyCash ? totalCash : null, retainedEarnings: retained };
+  });
+
+  function applyBsPreset(months: number) {
+    const now = new Date();
+    setBsRange({ end: toYM(now), start: toYM(new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)) });
   }
 
   function applyPreset(months: number) {
@@ -1050,6 +1108,149 @@ export default function ChartsPage() {
                     {plTotalNet < 0 ? `($${fmt(Math.abs(plTotalNet))})` : `$${fmt(plTotalNet)}`}
                   </td>
                 </tr>
+              </tbody>
+            </table>
+          </StickyScrollX>
+        </CardContent>
+      </Card>
+
+      {/* ── Balance Sheet ────────────────────────────────────────────────────── */}
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader className="pb-3 pt-5 px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-sm text-gray-300">Balance Sheet</CardTitle>
+              <p className="text-xs text-gray-600 mt-0.5">Month-end cash position &amp; cumulative retained earnings</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {([3, 6, 12] as const).map(n => {
+                const pEnd = toYM(new Date());
+                const pStart = toYM(new Date(new Date().getFullYear(), new Date().getMonth() - (n - 1), 1));
+                const active = bsRange.start === pStart && bsRange.end === pEnd;
+                return (
+                  <button key={n} onClick={() => applyBsPreset(n)}
+                    className={cn('px-2.5 py-1 rounded text-xs font-medium transition-colors',
+                      active ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200')}>
+                    {n}M
+                  </button>
+                );
+              })}
+              <span className="text-gray-700 text-xs">|</span>
+              <label className="text-xs text-gray-500">From</label>
+              <input type="month" value={bsRange.start}
+                onChange={e => setBsRange(r => ({ ...r, start: e.target.value }))}
+                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-violet-500" />
+              <label className="text-xs text-gray-500">To</label>
+              <input type="month" value={bsRange.end}
+                onChange={e => setBsRange(r => ({ ...r, end: e.target.value }))}
+                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-violet-500" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <StickyScrollX>
+            <table className="w-full text-sm min-w-max">
+              <thead>
+                <tr className="border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wide">
+                  <th className="text-left px-5 py-2.5 font-medium sticky left-0 bg-gray-900 z-10 min-w-[280px]">Item</th>
+                  {bsMonthCols.map(mo => (
+                    <th key={mo} className="text-right px-4 py-2.5 font-medium min-w-[130px] whitespace-nowrap">
+                      {fmtMonth(mo)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+
+                {/* ── ASSETS ── */}
+                <tr className="bg-blue-950/30 border-b border-blue-900/40">
+                  <td className="px-5 py-2 sticky left-0 bg-blue-950/30 z-10" colSpan={bsMonthCols.length + 1}>
+                    <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">Assets</span>
+                  </td>
+                </tr>
+
+                {/* Cash rows per source */}
+                {bsSources.map(src => (
+                  <tr key={src} className="border-b border-gray-800/60 hover:bg-gray-800/20">
+                    <td className="px-5 py-2.5 sticky left-0 bg-gray-900 z-10">
+                      <div className="flex items-center gap-2 pl-3">
+                        <span className="inline-block w-2 h-2 rounded-sm shrink-0 bg-blue-500/60" />
+                        <span className="text-gray-300 text-xs font-medium">{fmtSource(src)}</span>
+                      </div>
+                    </td>
+                    {bsData.map(row => (
+                      <td key={row.mo} className="px-4 py-2.5 text-right tabular-nums font-mono text-xs">
+                        {row.cashBySrc[src] == null
+                          ? <span className="text-gray-700">—</span>
+                          : <span className={row.cashBySrc[src]! < 0 ? 'text-red-400' : 'text-blue-300'}>
+                              {row.cashBySrc[src]! < 0 ? `($${fmt(Math.abs(row.cashBySrc[src]!))})` : `$${fmt(row.cashBySrc[src]!)}`}
+                            </span>
+                        }
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+
+                {/* Total Assets */}
+                <tr className="border-b-2 border-gray-700 bg-blue-950/20">
+                  <td className="px-5 py-3 font-semibold text-blue-300 text-xs sticky left-0 bg-blue-950/20 z-10"
+                    style={{ fontFamily: 'var(--font-heading)' }}>Total Assets</td>
+                  {bsData.map(row => (
+                    <td key={row.mo} className="px-4 py-3 text-right tabular-nums font-mono text-xs font-semibold">
+                      {row.totalCash == null
+                        ? <span className="text-gray-600">—</span>
+                        : <span className={row.totalCash < 0 ? 'text-red-300' : 'text-blue-300'}>
+                            {row.totalCash < 0 ? `($${fmt(Math.abs(row.totalCash))})` : `$${fmt(row.totalCash)}`}
+                          </span>
+                      }
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Spacer */}
+                <tr className="h-2 bg-gray-950"><td colSpan={bsMonthCols.length + 1} /></tr>
+
+                {/* ── EQUITY ── */}
+                <tr className="bg-violet-950/30 border-b border-violet-900/40">
+                  <td className="px-5 py-2 sticky left-0 bg-violet-950/30 z-10" colSpan={bsMonthCols.length + 1}>
+                    <span className="text-violet-400 text-xs font-bold uppercase tracking-widest">Equity</span>
+                  </td>
+                </tr>
+
+                {/* Retained Earnings */}
+                <tr className="border-b border-gray-800/60 hover:bg-gray-800/20">
+                  <td className="px-5 py-2.5 sticky left-0 bg-gray-900 z-10">
+                    <div className="flex items-center gap-2 pl-3">
+                      <span className="inline-block w-2 h-2 rounded-sm shrink-0 bg-violet-500/60" />
+                      <span className="text-gray-300 text-xs font-medium">Retained Earnings</span>
+                    </div>
+                  </td>
+                  {bsData.map(row => (
+                    <td key={row.mo} className="px-4 py-2.5 text-right tabular-nums font-mono text-xs">
+                      <span className={row.retainedEarnings < 0 ? 'text-red-400' : 'text-violet-300'}>
+                        {row.retainedEarnings < 0
+                          ? `($${fmt(Math.abs(row.retainedEarnings))})`
+                          : `$${fmt(row.retainedEarnings)}`}
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Total Equity */}
+                <tr className="border-b-2 border-gray-700 bg-violet-950/20">
+                  <td className="px-5 py-3 font-semibold text-violet-300 text-xs sticky left-0 bg-violet-950/20 z-10"
+                    style={{ fontFamily: 'var(--font-heading)' }}>Total Equity</td>
+                  {bsData.map(row => (
+                    <td key={row.mo} className="px-4 py-3 text-right tabular-nums font-mono text-xs font-semibold">
+                      <span className={row.retainedEarnings < 0 ? 'text-red-300' : 'text-violet-300'}>
+                        {row.retainedEarnings < 0
+                          ? `($${fmt(Math.abs(row.retainedEarnings))})`
+                          : `$${fmt(row.retainedEarnings)}`}
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+
               </tbody>
             </table>
           </StickyScrollX>
