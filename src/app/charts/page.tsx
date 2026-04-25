@@ -264,7 +264,7 @@ export default function ChartsPage() {
   // ── P&L table ────────────────────────────────────────────────────────────────
   const plMonthCols = getMonthsBetween(plRange.start, plRange.end);
   const plTable = buildMonthlyTable(transactions, plMonthCols);
-  const plRevRows = plTable.filter(r => !r.isExpense);
+  const plRevRows = plTable.filter(r => !r.isExpense && r.slug !== 'internal_transfers');
   const plExpRows = plTable.filter(r => r.isExpense);
   const plRevByMonth = plMonthCols.map((_, i) => plRevRows.reduce((s, r) => s + r.byMonth[i], 0));
   const plExpByMonth = plMonthCols.map((_, i) => plExpRows.reduce((s, r) => s + Math.abs(r.byMonth[i]), 0));
