@@ -203,6 +203,8 @@ export default function ChartsPage() {
   const [tableRange, setTableRange] = useState(defaultRange);
   const [mtOpen, setMtOpen] = useState<Record<string, boolean>>({});
   const [mtSubOpen, setMtSubOpen] = useState<Record<string, boolean>>({});
+  const [plRange, setPlRange] = useState(defaultRange);
+  const [plCatOpen, setPlCatOpen] = useState<Record<string, boolean>>({});
 
   const params: Record<string, string> = {};
   if (source) params.source = source;
@@ -258,6 +260,23 @@ export default function ChartsPage() {
   // ── Monthly spend table ─────────────────────────────────────────────────────
   const tableMonthCols = getMonthsBetween(tableRange.start, tableRange.end);
   const monthlyTable = buildMonthlyTable(transactions, tableMonthCols);
+
+  // ── P&L table ────────────────────────────────────────────────────────────────
+  const plMonthCols = getMonthsBetween(plRange.start, plRange.end);
+  const plTable = buildMonthlyTable(transactions, plMonthCols);
+  const plRevRows = plTable.filter(r => !r.isExpense);
+  const plExpRows = plTable.filter(r => r.isExpense);
+  const plRevByMonth = plMonthCols.map((_, i) => plRevRows.reduce((s, r) => s + r.byMonth[i], 0));
+  const plExpByMonth = plMonthCols.map((_, i) => plExpRows.reduce((s, r) => s + Math.abs(r.byMonth[i]), 0));
+  const plNetByMonth = plMonthCols.map((_, i) => plRevByMonth[i] - plExpByMonth[i]);
+  const plTotalRev = plRevByMonth.reduce((a, b) => a + b, 0);
+  const plTotalExp = plExpByMonth.reduce((a, b) => a + b, 0);
+  const plTotalNet = plTotalRev - plTotalExp;
+
+  function applyPlPreset(months: number) {
+    const now = new Date();
+    setPlRange({ end: toYM(now), start: toYM(new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)) });
+  }
 
   function applyPreset(months: number) {
     const now = new Date();
@@ -376,6 +395,232 @@ export default function ChartsPage() {
               ))}
             </BarChart>
           </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* ── P&L Statement ───────────────────────────────────────────────────── */}
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader className="pb-3 pt-5 px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-sm text-gray-300">Profit &amp; Loss Statement</CardTitle>
+              <p className="text-xs text-gray-600 mt-0.5">Revenue, expenses and net position by period</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {([3, 6, 12] as const).map(n => {
+                const pEnd = toYM(new Date());
+                const pStart = toYM(new Date(new Date().getFullYear(), new Date().getMonth() - (n - 1), 1));
+                const active = plRange.start === pStart && plRange.end === pEnd;
+                return (
+                  <button key={n} onClick={() => applyPlPreset(n)}
+                    className={cn('px-2.5 py-1 rounded text-xs font-medium transition-colors',
+                      active ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200')}>
+                    {n}M
+                  </button>
+                );
+              })}
+              <span className="text-gray-700 text-xs">|</span>
+              <label className="text-xs text-gray-500">From</label>
+              <input type="month" value={plRange.start}
+                onChange={e => setPlRange(r => ({ ...r, start: e.target.value }))}
+                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-violet-500" />
+              <label className="text-xs text-gray-500">To</label>
+              <input type="month" value={plRange.end}
+                onChange={e => setPlRange(r => ({ ...r, end: e.target.value }))}
+                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-violet-500" />
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          <StickyScrollX>
+            <table className="w-full text-sm min-w-max">
+              <thead>
+                <tr className="border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wide">
+                  <th className="text-left px-5 py-2.5 font-medium sticky left-0 bg-gray-900 z-10 min-w-[280px]">Item</th>
+                  {plMonthCols.map(mo => (
+                    <th key={mo} className="text-right px-4 py-2.5 font-medium min-w-[110px] whitespace-nowrap">{fmtMonth(mo)}</th>
+                  ))}
+                  <th className="text-right px-5 py-2.5 font-medium min-w-[120px] border-l border-gray-800">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+
+                {/* ── REVENUE section header ── */}
+                <tr className="bg-emerald-950/30 border-b border-emerald-900/40">
+                  <td className="px-5 py-2 sticky left-0 bg-emerald-950/30 z-10" colSpan={1}>
+                    <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest">Revenue</span>
+                  </td>
+                  {plMonthCols.map(mo => <td key={mo} />)}
+                  <td className="border-l border-gray-800" />
+                </tr>
+
+                {plRevRows.length === 0 ? (
+                  <tr className="border-b border-gray-800">
+                    <td className="px-5 py-3 text-gray-600 text-xs italic sticky left-0 bg-gray-900 z-10">No revenue in this period</td>
+                    {plMonthCols.map(mo => <td key={mo} />)}
+                    <td className="border-l border-gray-800" />
+                  </tr>
+                ) : plRevRows.flatMap(row => {
+                  const isOpen = !!plCatOpen[row.slug];
+                  const catRows = [
+                    <tr key={row.slug}
+                      className="border-b border-gray-800/60 hover:bg-gray-800/30 cursor-pointer select-none"
+                      onClick={() => setPlCatOpen(p => ({ ...p, [row.slug]: !p[row.slug] }))}>
+                      <td className="px-5 py-2.5 sticky left-0 bg-gray-900 z-10">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600 w-3 shrink-0">{isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}</span>
+                          <span className="inline-block w-2 h-2 rounded-sm shrink-0" style={{ background: getCategoryColor(row.slug) }} />
+                          <span className="text-gray-200 text-xs font-medium" style={{ fontFamily: 'var(--font-heading)' }}>{row.label}</span>
+                        </div>
+                      </td>
+                      {row.byMonth.map((amt, i) => (
+                        <td key={plMonthCols[i]} className="px-4 py-2.5 text-right tabular-nums font-mono text-xs">
+                          {amt === 0 ? <span className="text-gray-700">—</span> : <span className="text-emerald-400/90">+${fmt(amt)}</span>}
+                        </td>
+                      ))}
+                      <td className="px-5 py-2.5 text-right tabular-nums font-mono text-xs font-semibold text-emerald-400 border-l border-gray-800">
+                        +${fmt(row.total)}
+                      </td>
+                    </tr>
+                  ];
+                  if (!isOpen) return catRows;
+                  const subRows = row.subcats.map(sub => (
+                    <tr key={`${row.slug}-${sub.slug}`} className="border-b border-gray-800/30 bg-gray-950/40">
+                      <td className="px-5 py-2 sticky left-0 bg-gray-950/40 z-10">
+                        <div className="flex items-center gap-2 pl-7">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0 opacity-50" style={{ background: getCategoryColor(row.slug) }} />
+                          <span className="text-gray-400 text-xs">{sub.label}</span>
+                        </div>
+                      </td>
+                      {sub.byMonth.map((amt, i) => (
+                        <td key={plMonthCols[i]} className="px-4 py-2 text-right tabular-nums font-mono text-xs">
+                          {amt === 0 ? <span className="text-gray-800">—</span> : <span className="text-emerald-400/60">+${fmt(amt)}</span>}
+                        </td>
+                      ))}
+                      <td className="px-5 py-2 text-right tabular-nums font-mono text-xs text-emerald-400/60 border-l border-gray-800">
+                        +${fmt(sub.total)}
+                      </td>
+                    </tr>
+                  ));
+                  return [...catRows, ...subRows];
+                })}
+
+                {/* Total Revenue */}
+                <tr className="border-b-2 border-gray-700 bg-emerald-950/20">
+                  <td className="px-5 py-3 font-semibold text-emerald-300 text-xs sticky left-0 bg-emerald-950/20 z-10"
+                    style={{ fontFamily: 'var(--font-heading)' }}>Total Revenue</td>
+                  {plRevByMonth.map((amt, i) => (
+                    <td key={plMonthCols[i]} className="px-4 py-3 text-right tabular-nums font-mono text-xs font-semibold text-emerald-300">
+                      {amt === 0 ? <span className="text-gray-600">—</span> : `+$${fmt(amt)}`}
+                    </td>
+                  ))}
+                  <td className="px-5 py-3 text-right tabular-nums font-mono text-sm font-bold text-emerald-300 border-l border-gray-800">
+                    +${fmt(plTotalRev)}
+                  </td>
+                </tr>
+
+                {/* Spacer */}
+                <tr className="h-2 bg-gray-950"><td colSpan={plMonthCols.length + 2} /></tr>
+
+                {/* ── OPERATING EXPENSES section header ── */}
+                <tr className="bg-red-950/20 border-b border-red-900/30">
+                  <td className="px-5 py-2 sticky left-0 bg-red-950/20 z-10">
+                    <span className="text-red-400 text-xs font-bold uppercase tracking-widest">Operating Expenses</span>
+                  </td>
+                  {plMonthCols.map(mo => <td key={mo} />)}
+                  <td className="border-l border-gray-800" />
+                </tr>
+
+                {plExpRows.length === 0 ? (
+                  <tr className="border-b border-gray-800">
+                    <td className="px-5 py-3 text-gray-600 text-xs italic sticky left-0 bg-gray-900 z-10">No expenses in this period</td>
+                    {plMonthCols.map(mo => <td key={mo} />)}
+                    <td className="border-l border-gray-800" />
+                  </tr>
+                ) : plExpRows.flatMap(row => {
+                  const isOpen = !!plCatOpen[`exp-${row.slug}`];
+                  const catRows = [
+                    <tr key={`exp-${row.slug}`}
+                      className="border-b border-gray-800/60 hover:bg-gray-800/30 cursor-pointer select-none"
+                      onClick={() => setPlCatOpen(p => ({ ...p, [`exp-${row.slug}`]: !p[`exp-${row.slug}`] }))}>
+                      <td className="px-5 py-2.5 sticky left-0 bg-gray-900 z-10">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600 w-3 shrink-0">{isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}</span>
+                          <span className="inline-block w-2 h-2 rounded-sm shrink-0" style={{ background: getCategoryColor(row.slug) }} />
+                          <span className="text-gray-200 text-xs font-medium" style={{ fontFamily: 'var(--font-heading)' }}>{row.label}</span>
+                        </div>
+                      </td>
+                      {row.byMonth.map((amt, i) => (
+                        <td key={plMonthCols[i]} className="px-4 py-2.5 text-right tabular-nums font-mono text-xs">
+                          {amt === 0 ? <span className="text-gray-700">—</span> : <span className="text-red-400/90">${fmt(Math.abs(amt))}</span>}
+                        </td>
+                      ))}
+                      <td className="px-5 py-2.5 text-right tabular-nums font-mono text-xs font-semibold text-red-400 border-l border-gray-800">
+                        ${fmt(Math.abs(row.total))}
+                      </td>
+                    </tr>
+                  ];
+                  if (!isOpen) return catRows;
+                  const subRows = row.subcats.map(sub => (
+                    <tr key={`exp-${row.slug}-${sub.slug}`} className="border-b border-gray-800/30 bg-gray-950/40">
+                      <td className="px-5 py-2 sticky left-0 bg-gray-950/40 z-10">
+                        <div className="flex items-center gap-2 pl-7">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0 opacity-50" style={{ background: getCategoryColor(row.slug) }} />
+                          <span className="text-gray-400 text-xs">{sub.label}</span>
+                        </div>
+                      </td>
+                      {sub.byMonth.map((amt, i) => (
+                        <td key={plMonthCols[i]} className="px-4 py-2 text-right tabular-nums font-mono text-xs">
+                          {amt === 0 ? <span className="text-gray-800">—</span> : <span className="text-red-400/60">${fmt(Math.abs(amt))}</span>}
+                        </td>
+                      ))}
+                      <td className="px-5 py-2 text-right tabular-nums font-mono text-xs text-red-400/60 border-l border-gray-800">
+                        ${fmt(Math.abs(sub.total))}
+                      </td>
+                    </tr>
+                  ));
+                  return [...catRows, ...subRows];
+                })}
+
+                {/* Total Expenses */}
+                <tr className="border-b-2 border-gray-700 bg-red-950/10">
+                  <td className="px-5 py-3 font-semibold text-red-300 text-xs sticky left-0 bg-red-950/10 z-10"
+                    style={{ fontFamily: 'var(--font-heading)' }}>Total Expenses</td>
+                  {plExpByMonth.map((amt, i) => (
+                    <td key={plMonthCols[i]} className="px-4 py-3 text-right tabular-nums font-mono text-xs font-semibold text-red-300">
+                      {amt === 0 ? <span className="text-gray-600">—</span> : `$${fmt(amt)}`}
+                    </td>
+                  ))}
+                  <td className="px-5 py-3 text-right tabular-nums font-mono text-sm font-bold text-red-300 border-l border-gray-800">
+                    ${fmt(plTotalExp)}
+                  </td>
+                </tr>
+
+                {/* Spacer */}
+                <tr className="h-1 bg-gray-950"><td colSpan={plMonthCols.length + 2} /></tr>
+
+                {/* Net Profit / (Loss) */}
+                <tr className="border-t-2 border-gray-600 bg-gray-800/60">
+                  <td className="px-5 py-4 font-bold text-gray-100 sticky left-0 bg-gray-800/60 z-10"
+                    style={{ fontFamily: 'var(--font-heading)' }}>
+                    Net Profit / (Loss)
+                  </td>
+                  {plNetByMonth.map((amt, i) => (
+                    <td key={plMonthCols[i]} className={cn('px-4 py-4 text-right tabular-nums font-mono text-xs font-bold',
+                      amt < 0 ? 'text-red-300' : amt > 0 ? 'text-emerald-300' : 'text-gray-500')}>
+                      {amt === 0 ? '—' : `${amt < 0 ? '(' : ''}$${fmt(Math.abs(amt))}${amt < 0 ? ')' : ''}`}
+                    </td>
+                  ))}
+                  <td className={cn('px-5 py-4 text-right tabular-nums font-mono text-base font-bold border-l border-gray-700',
+                    plTotalNet < 0 ? 'text-red-300' : plTotalNet > 0 ? 'text-emerald-300' : 'text-gray-500')}>
+                    {plTotalNet < 0 ? `($${fmt(Math.abs(plTotalNet))})` : `$${fmt(plTotalNet)}`}
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </StickyScrollX>
         </CardContent>
       </Card>
 
