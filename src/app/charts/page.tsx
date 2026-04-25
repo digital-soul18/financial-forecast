@@ -11,7 +11,13 @@ import { CATEGORIES } from '@/lib/categoryConstants';
 import { getCategoryColor } from '@/lib/categoryColors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronDown, ChevronRight, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pencil, Download } from 'lucide-react';
+import {
+  exportPlPdf,
+  exportBsPdf,
+  exportMonthlySpendPdf,
+  exportBreakdownPdf,
+} from '@/lib/charts/exportPdf';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -460,7 +466,15 @@ export default function ChartsPage() {
       <Card className="bg-gray-900 border-gray-800">
         <CardHeader className="pb-3 pt-5 px-5 flex-row items-center justify-between">
           <CardTitle className="text-sm text-gray-300">Category &amp; Subcategory Breakdown</CardTitle>
-          <span className="text-xs text-gray-500">{transactions.length} transactions</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500">{transactions.length} transactions</span>
+            <button
+              onClick={() => exportBreakdownPdf({ rows: breakdown, grandExpenses, totalRevenue })}
+              title="Export to PDF"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200 transition-colors">
+              <Download className="w-3 h-3" />PDF
+            </button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <table className="w-full text-sm">
@@ -692,6 +706,13 @@ export default function ChartsPage() {
                 onChange={e => setTableRange(r => ({ ...r, end: e.target.value }))}
                 className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-violet-500"
               />
+              <span className="text-gray-700 text-xs">|</span>
+              <button
+                onClick={() => exportMonthlySpendPdf({ monthCols: tableMonthCols, rows: monthlyTable })}
+                title="Export to PDF"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200 transition-colors">
+                <Download className="w-3 h-3" />PDF
+              </button>
             </div>
           </div>
         </CardHeader>
@@ -938,6 +959,23 @@ export default function ChartsPage() {
               <input type="month" value={plRange.end}
                 onChange={e => setPlRange(r => ({ ...r, end: e.target.value }))}
                 className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-violet-500" />
+              <span className="text-gray-700 text-xs">|</span>
+              <button
+                onClick={() => exportPlPdf({
+                  monthCols: plMonthCols,
+                  revRows: plRevRows,
+                  expRows: plExpRows,
+                  revByMonth: plRevByMonth,
+                  expByMonth: plExpByMonth,
+                  netByMonth: plNetByMonth,
+                  totalRev: plTotalRev,
+                  totalExp: plTotalExp,
+                  totalNet: plTotalNet,
+                })}
+                title="Export to PDF"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200 transition-colors">
+                <Download className="w-3 h-3" />PDF
+              </button>
             </div>
           </div>
         </CardHeader>
@@ -1144,6 +1182,18 @@ export default function ChartsPage() {
               <input type="month" value={bsRange.end}
                 onChange={e => setBsRange(r => ({ ...r, end: e.target.value }))}
                 className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-violet-500" />
+              <span className="text-gray-700 text-xs">|</span>
+              <button
+                onClick={() => exportBsPdf({
+                  monthCols: bsMonthCols,
+                  sources: bsSources,
+                  data: bsData,
+                  fmtSource,
+                })}
+                title="Export to PDF"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200 transition-colors">
+                <Download className="w-3 h-3" />PDF
+              </button>
             </div>
           </div>
         </CardHeader>
