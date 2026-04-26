@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Users, Shield, UserCheck, UserX, ExternalLink, Send, RotateCcw } from 'lucide-react';
+import { Trash2, Users, Shield, UserCheck, UserX, ExternalLink, Send, RotateCcw, UserPlus, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
@@ -62,6 +62,14 @@ export default function SettingsPage() {
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [inviteStatus, setInviteStatus] = useState<Record<string, 'sent' | 'error'>>({});
 
+  // New user dialog
+  const [showDialog, setShowDialog] = useState(false);
+  const emptyForm = { name: '', email: '', role: 'contractor' as 'admin' | 'contractor', dailyRate: '', startDate: '' };
+  const [newForm, setNewForm] = useState(emptyForm);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [createSuccess, setCreateSuccess] = useState('');
+
   const currentUserId = usersData?.currentUserId ?? '';
   const users = usersData?.users ?? [];
 
@@ -102,6 +110,40 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleCreateUser(e: React.FormEvent) {
+    e.preventDefault();
+    setCreating(true);
+    setCreateError('');
+    setCreateSuccess('');
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newForm.name,
+          email: newForm.email,
+          role: newForm.role,
+          ...(newForm.role === 'contractor' ? {
+            dailyRate: Number(newForm.dailyRate),
+            startDate: newForm.startDate,
+          } : {}),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setCreateError(data.error ?? 'Failed to create user'); return; }
+      const label = newForm.role === 'admin' ? 'admin access' : 'a contractor invite';
+      setCreateSuccess(
+        data.emailError
+          ? `${newForm.name} was created but the invite email failed: ${data.emailError}`
+          : `${newForm.name} has been created and sent ${label} email.`,
+      );
+      setNewForm(emptyForm);
+      mutateUsers();
+    } finally {
+      setCreating(false);
+    }
+  }
+
   async function deleteRule(id: string) {
     await fetch(`/api/rules/${id}`, { method: 'DELETE' });
     mutateRules();
@@ -115,9 +157,17 @@ export default function SettingsPage() {
 
       {/* ── User Management ─────────────────────────────────────────────────── */}
       <section className="space-y-4">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-200">User Management</h2>
-          <p className="text-xs text-gray-500 mt-0.5">All accounts that can access this platform</p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-200">User Management</h2>
+            <p className="text-xs text-gray-500 mt-0.5">All accounts that can access this platform</p>
+          </div>
+          <Button
+            onClick={() => { setShowDialog(true); setCreateError(''); setCreateSuccess(''); }}
+            className="flex items-center gap-2 bg-violet-700 hover:bg-violet-600 text-white text-xs px-3 py-1.5 h-auto rounded-md">
+            <UserPlus className="w-3.5 h-3.5" />
+            New User
+          </Button>
         </div>
 
         {/* Stat cards */}
@@ -343,6 +393,168 @@ export default function SettingsPage() {
       <div className="text-sm text-gray-500">
         <a href="/settings/rd-config" className="text-violet-400 hover:text-violet-300">Configure R&D % by subcategory →</a>
       </div>
+
+      {/* ── New User Dialog ──────────────────────────────────────────────────── */}
+      {showDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => { if (!creating) { setShowDialog(false); setCreateSuccess(''); } }}
+          />
+
+          {/* Panel */}
+          <div className="relative z-10 w-full max-w-md bg-gray-900 border border-gray-700 rounded-xl shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-800">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-100">Create New User</h3>
+                <p className="text-xs text-gray-500 mt-0.5">An invite email will be sent automatically</p>
+              </div>
+              <button
+                onClick={() => { if (!creating) { setShowDialog(false); setCreateSuccess(''); } }}
+                className="text-gray-500 hover:text-gray-300 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Success state */}
+            {createSuccess ? (
+              <div className="px-6 py-8 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-900/50 flex items-center justify-center mx-auto">
+                  <UserCheck className="w-6 h-6 text-emerald-400" />
+                </div>
+                <p className="text-sm text-gray-300">{createSuccess}</p>
+                <div className="flex gap-3 justify-center pt-2">
+                  <Button
+                    onClick={() => { setNewForm(emptyForm); setCreateSuccess(''); }}
+                    variant="ghost"
+                    className="text-xs text-gray-400 hover:text-gray-200">
+                    Create Another
+                  </Button>
+                  <Button
+                    onClick={() => { setShowDialog(false); setCreateSuccess(''); }}
+                    className="text-xs bg-violet-700 hover:bg-violet-600 text-white px-4">
+                    Done
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateUser} className="px-6 py-5 space-y-4">
+                {/* Role selector */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-400">Role</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['contractor', 'admin'] as const).map(r => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setNewForm(f => ({ ...f, role: r }))}
+                        className={cn(
+                          'flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium border transition-colors',
+                          newForm.role === r
+                            ? r === 'admin'
+                              ? 'bg-amber-900/40 border-amber-700 text-amber-300'
+                              : 'bg-blue-900/40 border-blue-700 text-blue-300'
+                            : 'bg-gray-800/60 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300',
+                        )}>
+                        {r === 'admin' ? <Shield className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
+                        {r === 'admin' ? 'Admin' : 'Contractor'}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {newForm.role === 'admin'
+                      ? 'Full access to the finance dashboard'
+                      : 'Access to contractor portal only (leave & payslips)'}
+                  </p>
+                </div>
+
+                {/* Name */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-400">Full Name</label>
+                  <input
+                    required
+                    value={newForm.name}
+                    onChange={e => setNewForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Jane Smith"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-400">Email Address</label>
+                  <input
+                    required
+                    type="email"
+                    value={newForm.email}
+                    onChange={e => setNewForm(f => ({ ...f, email: e.target.value }))}
+                    placeholder="jane@example.com"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+                  />
+                </div>
+
+                {/* Contractor-only fields */}
+                {newForm.role === 'contractor' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-gray-400">Daily Rate (AUD)</label>
+                      <input
+                        required
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newForm.dailyRate}
+                        onChange={e => setNewForm(f => ({ ...f, dailyRate: e.target.value }))}
+                        placeholder="500"
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-gray-400">Start Date</label>
+                      <input
+                        required
+                        type="date"
+                        value={newForm.startDate}
+                        onChange={e => setNewForm(f => ({ ...f, startDate: e.target.value }))}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-violet-500 transition-colors [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Error */}
+                {createError && (
+                  <p className="text-xs text-red-400 bg-red-950/40 border border-red-900/50 rounded-lg px-3 py-2">
+                    {createError}
+                  </p>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={creating}
+                    onClick={() => { setShowDialog(false); setNewForm(emptyForm); setCreateError(''); }}
+                    className="flex-1 text-sm text-gray-400 hover:text-gray-200 border border-gray-700 hover:border-gray-600">
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={creating}
+                    className="flex-1 bg-violet-700 hover:bg-violet-600 text-white text-sm flex items-center justify-center gap-2">
+                    {creating
+                      ? <><RotateCcw className="w-3.5 h-3.5 animate-spin" />Creating…</>
+                      : <><Send className="w-3.5 h-3.5" />Create &amp; Invite</>}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

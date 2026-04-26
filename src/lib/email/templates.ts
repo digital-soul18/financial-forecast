@@ -37,6 +37,19 @@ function btn(href: string, label: string, bg = BRAND_COLOR, color = '#fff'): str
   return `<a href="${href}" style="display:inline-block;padding:12px 24px;background:${bg};color:${color};text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">${label}</a>`;
 }
 
+// ─── Admin Invite Email ───────────────────────────────────────────────────────
+
+export function adminInviteEmailHtml(opts: { name: string; appUrl: string }): string {
+  const loginUrl = `${opts.appUrl}/login`;
+  const body = `
+    <p style="margin:0 0 8px;color:#374151;font-size:16px;font-weight:600;">Hi ${opts.name},</p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">You've been given admin access to the <strong>Voice AI Solutions Finance Dashboard</strong>.</p>
+    <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">To log in, enter your email address and you'll receive a one-time code — no password needed.</p>
+    <div style="text-align:center;margin:32px 0;">${btn(loginUrl, 'Access Finance Dashboard')}</div>
+    <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;text-align:center;">Or copy this link: <a href="${loginUrl}" style="color:${BRAND_COLOR};">${loginUrl}</a></p>`;
+  return wrapper(body);
+}
+
 // ─── OTP Email ────────────────────────────────────────────────────────────────
 
 export function otpEmailHtml(opts: { code: string; name?: string }): string {
