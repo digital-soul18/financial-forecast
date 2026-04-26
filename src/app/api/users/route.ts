@@ -15,7 +15,10 @@ export async function GET(req: NextRequest) {
 
     const users = await prisma.user.findMany({
       orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
-      include: { contractor: { select: { id: true, name: true, dailyRate: true, isActive: true } } },
+      include: {
+        contractor: { select: { id: true, name: true, dailyRate: true, isActive: true } },
+        sessions: { select: { createdAt: true }, orderBy: { createdAt: 'desc' }, take: 1 },
+      },
     });
 
     return NextResponse.json({
@@ -27,6 +30,7 @@ export async function GET(req: NextRequest) {
         role: u.role,
         isActive: u.isActive,
         createdAt: u.createdAt.toISOString(),
+        lastLoginAt: u.sessions[0]?.createdAt.toISOString() ?? null,
         contractorId: u.contractor?.id ?? null,
         contractorName: u.contractor?.name ?? null,
         dailyRate: u.contractor?.dailyRate ?? null,

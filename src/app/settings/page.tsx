@@ -31,6 +31,7 @@ interface AppUser {
   role: string;
   isActive: boolean;
   createdAt: string;
+  lastLoginAt: string | null;
   contractorId: string | null;
   contractorName: string | null;
   dailyRate: number | null;
@@ -198,6 +199,7 @@ export default function SettingsPage() {
                   <TableHead className="text-gray-400 pl-5">User</TableHead>
                   <TableHead className="text-gray-400">Role</TableHead>
                   <TableHead className="text-gray-400">Status</TableHead>
+                  <TableHead className="text-gray-400">Last Login</TableHead>
                   <TableHead className="text-gray-400">Joined</TableHead>
                   <TableHead className="text-gray-400">Rate</TableHead>
                   <TableHead className="text-gray-400 pr-5" />
@@ -268,6 +270,13 @@ export default function SettingsPage() {
                           {user.isActive ? <UserCheck className="w-2.5 h-2.5" /> : <UserX className="w-2.5 h-2.5" />}
                           {user.isActive ? 'Active' : 'Inactive'}
                         </span>
+                      </TableCell>
+
+                      {/* Last Login */}
+                      <TableCell className="text-sm tabular-nums">
+                        {user.lastLoginAt
+                          ? <span className="text-gray-300">{fmtDate(user.lastLoginAt)}</span>
+                          : <span className="text-gray-600">Never</span>}
                       </TableCell>
 
                       {/* Joined */}
