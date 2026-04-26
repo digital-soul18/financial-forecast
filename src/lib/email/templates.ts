@@ -6,7 +6,7 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-function wrapper(body: string): string {
+function wrapper(body: string, portalName = 'Contractor Portal'): string {
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -17,7 +17,7 @@ function wrapper(body: string): string {
         <tr>
           <td style="background:${BRAND_COLOR};padding:24px 32px;">
             <p style="margin:0;color:#fff;font-size:18px;font-weight:700;letter-spacing:-.3px;">Voice AI Solutions</p>
-            <p style="margin:4px 0 0;color:#ddd6fe;font-size:12px;text-transform:uppercase;letter-spacing:2px;">Contractor Portal</p>
+            <p style="margin:4px 0 0;color:#ddd6fe;font-size:12px;text-transform:uppercase;letter-spacing:2px;">${portalName}</p>
           </td>
         </tr>
         <tr><td style="padding:32px;">${body}</td></tr>
@@ -43,11 +43,11 @@ export function adminInviteEmailHtml(opts: { name: string; appUrl: string }): st
   const loginUrl = `${opts.appUrl}/login`;
   const body = `
     <p style="margin:0 0 8px;color:#374151;font-size:16px;font-weight:600;">Hi ${opts.name},</p>
-    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">You've been given admin access to the <strong>Voice AI Solutions Finance Dashboard</strong>.</p>
-    <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">To log in, enter your email address and you'll receive a one-time code — no password needed.</p>
-    <div style="text-align:center;margin:32px 0;">${btn(loginUrl, 'Access Finance Dashboard')}</div>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">You've been granted access to the <strong>Voice AI Solutions Investor &amp; Due Diligence Portal</strong>.</p>
+    <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Here you'll find live financial statements, P&amp;L reports, balance sheets, and cash flow data. To log in, simply enter your email address and we'll send you a one-time code — no password needed.</p>
+    <div style="text-align:center;margin:32px 0;">${btn(loginUrl, 'Access Investor Portal')}</div>
     <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;text-align:center;">Or copy this link: <a href="${loginUrl}" style="color:${BRAND_COLOR};">${loginUrl}</a></p>`;
-  return wrapper(body);
+  return wrapper(body, 'Investor & Due Diligence Portal');
 }
 
 // ─── OTP Email ────────────────────────────────────────────────────────────────
