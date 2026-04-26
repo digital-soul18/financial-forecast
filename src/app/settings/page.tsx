@@ -99,10 +99,9 @@ export default function SettingsPage() {
   }
 
   async function resendInvite(user: AppUser) {
-    if (!user.contractorId) return;
     setInvitingId(user.id);
     try {
-      const res = await fetch(`/api/contractors/${user.contractorId}/invite`, { method: 'POST' });
+      const res = await fetch(`/api/users/${user.id}/invite`, { method: 'POST' });
       setInviteStatus(s => ({ ...s, [user.id]: res.ok ? 'sent' : 'error' }));
       setTimeout(() => setInviteStatus(s => { const n = { ...s }; delete n[user.id]; return n; }), 3000);
     } finally {
@@ -297,22 +296,20 @@ export default function SettingsPage() {
                             </Link>
                           )}
 
-                          {/* Resend invite (contractors only) */}
-                          {user.contractorId && (
-                            <Button size="icon" variant="ghost"
-                              className={cn('w-7 h-7 transition-colors', invSt === 'sent'
-                                ? 'text-emerald-400'
-                                : invSt === 'error'
-                                  ? 'text-red-400'
-                                  : 'text-gray-500 hover:text-blue-400')}
-                              title={invSt === 'sent' ? 'Invite sent!' : invSt === 'error' ? 'Send failed' : 'Resend invite email'}
-                              disabled={isInviting}
-                              onClick={() => resendInvite(user)}>
-                              {isInviting
-                                ? <RotateCcw className="w-3.5 h-3.5 animate-spin" />
-                                : <Send className="w-3.5 h-3.5" />}
-                            </Button>
-                          )}
+                          {/* Resend invite (all users) */}
+                          <Button size="icon" variant="ghost"
+                            className={cn('w-7 h-7 transition-colors', invSt === 'sent'
+                              ? 'text-emerald-400'
+                              : invSt === 'error'
+                                ? 'text-red-400'
+                                : 'text-gray-500 hover:text-blue-400')}
+                            title={invSt === 'sent' ? 'Invite sent!' : invSt === 'error' ? 'Send failed' : 'Resend invite email'}
+                            disabled={invitingId === user.id}
+                            onClick={() => resendInvite(user)}>
+                            {invitingId === user.id
+                              ? <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                              : <Send className="w-3.5 h-3.5" />}
+                          </Button>
 
                           {/* Deactivate / reactivate */}
                           <Button size="icon" variant="ghost"
