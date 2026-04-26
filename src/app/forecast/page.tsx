@@ -705,15 +705,15 @@ export default function ForecastPage() {
   const firstFutureIdx = pastMonths.length; // index in allMonths where future starts
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 justify-between">
         <h1 className="text-xl font-semibold text-gray-100">Financial Forecast</h1>
-        <p className="text-xs text-gray-400">Click any future cell to override the projection · Use ≡ for bulk row edit</p>
+        <p className="text-xs text-gray-400">Click any future cell to override · Use ≡ for bulk row edit</p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-1 pt-4 px-4">
             <CardTitle className="text-xs text-gray-400 font-normal">Current Balance</CardTitle>

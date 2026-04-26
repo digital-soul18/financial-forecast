@@ -97,9 +97,9 @@ export default function ContractorsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center gap-3 justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-100">Contractors</h1>
           <p className="text-gray-400 text-sm mt-0.5">{activeContractors.length} active</p>
@@ -125,7 +125,7 @@ export default function ContractorsPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
           <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Active Contractors</p>
           <p className="text-white text-2xl font-bold">{activeContractors.length}</p>
@@ -163,7 +163,7 @@ export default function ContractorsPage() {
         <div className="bg-gray-900 border border-violet-800 rounded-xl p-6">
           <h2 className="text-white font-medium text-sm mb-4">New Contractor</h2>
           <form onSubmit={handleAddContractor}>
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Full Name</label>
                 <input
@@ -234,13 +234,15 @@ export default function ContractorsPage() {
       {/* Contractors table */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
         {contractors.length === 0 ? (
+
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Users className="w-10 h-10 text-gray-700 mb-3" />
             <p className="text-gray-400 text-sm">No contractors yet</p>
             <p className="text-gray-600 text-xs mt-1">Add your first contractor to get started.</p>
           </div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Name</th>
@@ -309,6 +311,7 @@ export default function ContractorsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

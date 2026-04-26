@@ -152,7 +152,7 @@ export default function SettingsPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-4 sm:p-6 space-y-8">
       <h1 className="text-xl font-semibold text-gray-100">Settings</h1>
 
       {/* ── User Management ─────────────────────────────────────────────────── */}
@@ -193,7 +193,8 @@ export default function SettingsPage() {
         {/* Users table */}
         <Card className="bg-gray-900 border-gray-800">
           <CardContent className="p-0">
-            <Table>
+            <div className="overflow-x-auto">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow className="border-gray-800 hover:bg-transparent">
                   <TableHead className="text-gray-400 pl-5">User</TableHead>
@@ -344,6 +345,7 @@ export default function SettingsPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -357,7 +359,8 @@ export default function SettingsPage() {
 
         <Card className="bg-gray-900 border-gray-800">
           <CardContent className="p-0">
-            <Table>
+            <div className="overflow-x-auto">
+            <Table className="min-w-[520px]">
               <TableHeader>
                 <TableRow className="border-gray-800 hover:bg-transparent">
                   <TableHead className="text-gray-400">Pattern</TableHead>
@@ -392,6 +395,7 @@ export default function SettingsPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -503,7 +507,7 @@ export default function SettingsPage() {
 
                 {/* Contractor-only fields */}
                 {newForm.role === 'contractor' && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-gray-400">Daily Rate (AUD)</label>
                       <input

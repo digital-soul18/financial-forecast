@@ -15,6 +15,7 @@ import {
   Scale,
   Globe,
   Users,
+  X,
 } from 'lucide-react';
 
 const nav = [
@@ -30,12 +31,26 @@ const nav = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-56 bg-gray-950 border-r border-gray-800 flex flex-col z-30">
-      <div className="px-5 py-5 border-b border-gray-800">
+    <aside
+      className={cn(
+        'fixed left-0 top-0 h-screen w-64 md:w-56 bg-gray-950 border-r border-gray-800 flex flex-col z-50',
+        'transition-transform duration-300 ease-in-out',
+        // Desktop: always visible; Mobile: translate based on isOpen
+        'md:translate-x-0',
+        isOpen ? 'translate-x-0' : '-translate-x-full',
+      )}
+    >
+      {/* Desktop logo / Mobile close button */}
+      <div className="px-5 py-5 border-b border-gray-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Beaker className="w-5 h-5 text-violet-400" />
           <div>
@@ -43,17 +58,26 @@ export function Sidebar() {
             <p className="text-gray-500 text-[11px] tracking-widest uppercase font-medium">Vantage</p>
           </div>
         </div>
+        {/* Close button — only shown on mobile */}
+        <button
+          onClick={onClose}
+          className="md:hidden text-gray-400 hover:text-white p-1 rounded transition-colors"
+          aria-label="Close menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
           return (
             <Link
               key={href}
               href={href}
+              onClick={onClose}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors',
                 active
                   ? 'bg-violet-600 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800',

@@ -108,7 +108,7 @@ export default function ContractorPortal() {
 
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
         {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Daily Rate</p>
             <p className="text-white font-semibold text-lg">{contractor.currency} {fmt(contractor.dailyRate)}</p>
@@ -156,7 +156,8 @@ export default function ContractorPortal() {
                 <p className="text-gray-600 text-xs mt-1">Payslips are generated on the 25th of each month.</p>
               </div>
             ) : (
-              <table className="w-full">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px]">
                 <thead>
                   <tr className="border-b border-gray-800">
                     <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Period</th>
@@ -182,6 +183,7 @@ export default function ContractorPortal() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         )}
@@ -212,7 +214,7 @@ export default function ContractorPortal() {
             {showLeaveForm && (
               <form onSubmit={handleSubmitLeave} className="bg-gray-900 border border-gray-700 rounded-xl p-5 space-y-4">
                 <h3 className="text-white font-medium text-sm">New Leave Request</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Date</label>
                     <input
@@ -263,7 +265,8 @@ export default function ContractorPortal() {
                   <p className="text-gray-400 text-sm">No leave requests yet</p>
                 </div>
               ) : (
-                <table className="w-full">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[440px]">
                   <thead>
                     <tr className="border-b border-gray-800">
                       <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Date</th>
@@ -285,6 +288,7 @@ export default function ContractorPortal() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </div>

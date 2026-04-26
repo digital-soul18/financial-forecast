@@ -43,11 +43,11 @@ export default function DashboardPage() {
     .slice(0, 8);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       <h1 className="text-xl font-semibold text-gray-100">Dashboard</h1>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-1 pt-4 px-4 flex-row items-center gap-2">
             <TrendingDown className="w-4 h-4 text-red-400" />
@@ -90,7 +90,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Spending donut */}
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-2">

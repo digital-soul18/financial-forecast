@@ -205,12 +205,12 @@ function TransactionsPageInner() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-wrap items-start gap-y-2 justify-between">
         <h1 className="text-xl font-semibold text-gray-100">Transactions</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="text-sm text-gray-400">
-            {total} transactions · Sum: <span className={sum < 0 ? 'text-red-400' : 'text-emerald-400'}>${Math.abs(sum).toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
+            {total} txns · <span className={sum < 0 ? 'text-red-400' : 'text-emerald-400'}>${Math.abs(sum).toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
           </div>
           <Button
             size="sm"
@@ -314,6 +314,7 @@ function TransactionsPageInner() {
 
       {/* Table */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-gray-800 hover:bg-transparent">
@@ -486,6 +487,7 @@ function TransactionsPageInner() {
           </TableBody>
         </Table>
 
+        </div>
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-800">

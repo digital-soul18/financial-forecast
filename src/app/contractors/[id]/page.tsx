@@ -151,7 +151,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
   const leaveRequests: LeaveRequest[] = contractor.leaveRequests ?? [];
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
+    <div className="p-4 sm:p-6 space-y-6 max-w-5xl">
       {/* Back link */}
       <Link href="/contractors" className="inline-flex items-center gap-1.5 text-gray-400 hover:text-white text-sm transition-colors">
         <ArrowLeft className="w-4 h-4" />Back to Contractors
@@ -159,7 +159,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
 
       {/* Contractor info card */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex flex-wrap items-start gap-3 justify-between mb-4">
           <div>
             <h1 className="text-white text-xl font-semibold">{contractor.name}</h1>
             <p className="text-gray-400 text-sm mt-0.5">{contractor.user.email}</p>
@@ -183,7 +183,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         {editing ? (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Name</label>
               <input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
@@ -209,7 +209,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
               <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Daily Rate</p>
               <p className="text-violet-300 font-semibold">AUD {fmt(contractor.dailyRate)}</p>
@@ -253,7 +253,8 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         {payslips.length === 0 ? (
           <div className="py-12 text-center text-gray-500 text-sm">No payslips generated yet.</div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px]">
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Period</th>
@@ -294,6 +295,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -311,7 +313,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
 
         {showLeaveForm && (
           <form onSubmit={handleAddLeave} className="px-5 py-4 border-b border-gray-800 bg-gray-800/50">
-            <div className="flex items-end gap-3">
+            <div className="flex flex-wrap items-end gap-3">
               <div>
                 <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Date</label>
                 <input type="date" value={leaveForm.leaveDate} required
@@ -343,7 +345,8 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
             <p className="text-gray-600 text-xs">The contractor can request leave from their portal, or use "Add Leave" above.</p>
           </div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px]">
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Date</th>
@@ -386,6 +389,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

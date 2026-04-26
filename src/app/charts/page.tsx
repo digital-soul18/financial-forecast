@@ -354,9 +354,9 @@ export default function ChartsPage() {
   const toggleDrill = (key: string) => setDrilled(p => ({ ...p, [key]: !p[key] }));
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center gap-3 justify-between">
         <h1 className="text-xl font-semibold text-gray-100">Charts</h1>
         <div className="flex gap-3">
           <Select value={source || 'all'} onValueChange={v => setSource(v === 'all' ? '' : (v ?? ''))}>
@@ -384,7 +384,7 @@ export default function ChartsPage() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-1 pt-4 px-4"><CardTitle className="text-xs text-gray-400 font-normal">Total Expenses</CardTitle></CardHeader>
           <CardContent className="px-4 pb-4"><p className="text-2xl font-semibold text-red-400">${fmt(totalExpenses)}</p></CardContent>
@@ -402,7 +402,7 @@ export default function ChartsPage() {
       </div>
 
       {/* Charts row */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-2"><CardTitle className="text-sm text-gray-300">Spending by Category</CardTitle></CardHeader>
           <CardContent>
@@ -477,6 +477,7 @@ export default function ChartsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wide">
@@ -658,6 +659,7 @@ export default function ChartsPage() {
               </tr>
             </tbody>
           </table>
+          </div>
         </CardContent>
       </Card>
       {/* ── Monthly Spend by Category table ──────────────────────────────────── */}

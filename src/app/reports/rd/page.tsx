@@ -149,9 +149,9 @@ export default function RdReportPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center gap-3 justify-between">
         <div className="flex items-center gap-2">
           <FlaskConical className="w-5 h-5 text-violet-400" />
           <h1 className="text-xl font-semibold text-gray-100">R&amp;D Tax Incentive Report</h1>
@@ -171,7 +171,7 @@ export default function RdReportPage() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-1 pt-4 px-4">
             <CardTitle className="text-xs text-gray-400 font-normal">Total R&amp;D Claimable</CardTitle>
@@ -207,7 +207,8 @@ export default function RdReportPage() {
           <span className="text-xs text-gray-500">{grandCount} transactions</span>
         </CardHeader>
         <CardContent className="p-0">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[520px]">
             <thead>
               <tr className="border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wide">
                 <th className="text-left px-5 py-2.5 font-medium">Category / Subcategory</th>
@@ -417,6 +418,7 @@ export default function RdReportPage() {
               )}
             </tbody>
           </table>
+          </div>
         </CardContent>
       </Card>
     </div>

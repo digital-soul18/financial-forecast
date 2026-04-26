@@ -184,7 +184,7 @@ export default function MarketComparisonPage() {
   ];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-10">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-10">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-6 border-b border-gray-700">
