@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       try {
         await sendEmail({
           to: email,
-          subject: 'You have been added as an admin on Voice AI Solutions Finance Dashboard',
+          subject: 'You\'ve been invited to Voice AI Solutions — Vantage Investor Portal',
           html: adminInviteEmailHtml({ name, appUrl }),
         });
       } catch (err) {

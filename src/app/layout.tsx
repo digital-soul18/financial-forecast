@@ -25,8 +25,8 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Voice AI Finance',
-  description: 'Business finance app for Voice AI Solutions',
+  title: 'Voice AI Solutions — Vantage',
+  description: 'Voice AI Solutions — Vantage Investor Portal',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -40,7 +40,7 @@ export function Sidebar() {
           <Beaker className="w-5 h-5 text-violet-400" />
           <div>
             <p className="text-white font-bold text-sm leading-tight tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>Voice AI Solutions</p>
-            <p className="text-gray-500 text-[11px] tracking-widest uppercase font-medium">Finance</p>
+            <p className="text-gray-500 text-[11px] tracking-widest uppercase font-medium">Vantage</p>
           </div>
         </div>
       </div>

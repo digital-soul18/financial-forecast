@@ -43,11 +43,11 @@ export function adminInviteEmailHtml(opts: { name: string; appUrl: string }): st
   const loginUrl = `${opts.appUrl}/login`;
   const body = `
     <p style="margin:0 0 8px;color:#374151;font-size:16px;font-weight:600;">Hi ${opts.name},</p>
-    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">You've been granted access to the <strong>Voice AI Solutions Investor &amp; Due Diligence Portal</strong>.</p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">You've been granted access to the <strong>Voice AI Solutions — Vantage Investor Portal</strong>.</p>
     <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Here you'll find live financial statements, P&amp;L reports, balance sheets, and cash flow data. To log in, simply enter your email address and we'll send you a one-time code — no password needed.</p>
-    <div style="text-align:center;margin:32px 0;">${btn(loginUrl, 'Access Investor Portal')}</div>
+    <div style="text-align:center;margin:32px 0;">${btn(loginUrl, 'Access Vantage Investor Portal')}</div>
     <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;text-align:center;">Or copy this link: <a href="${loginUrl}" style="color:${BRAND_COLOR};">${loginUrl}</a></p>`;
-  return wrapper(body, 'Investor & Due Diligence Portal');
+  return wrapper(body, 'Vantage Investor Portal');
 }
 
 // ─── OTP Email ────────────────────────────────────────────────────────────────

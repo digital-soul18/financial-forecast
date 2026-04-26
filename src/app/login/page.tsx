@@ -100,7 +100,7 @@ export default function LoginPage() {
           </div>
           <div>
             <p className="text-white font-bold text-base leading-tight">Voice AI Solutions</p>
-            <p className="text-gray-500 text-[11px] tracking-widest uppercase">Contractor Portal</p>
+            <p className="text-gray-500 text-[11px] tracking-widest uppercase">Vantage Investor Portal</p>
           </div>
         </div>
 
@@ -183,7 +183,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-gray-600 text-xs text-center mt-6">
-          Voice AI Solutions · Contractor Management System
+          Voice AI Solutions · Vantage Investor Portal
         </p>
       </div>
     </div>
