@@ -377,8 +377,8 @@ export default function ProceedsPage() {
             { value: '4,000',   label: 'Calls/month', sub: 'Medical AI receptionist (Western Sydney)', color: COLORS.product },
             { value: '0',       label: 'Compliance incidents', sub: 'Across all live deployments', color: COLORS.operations },
             { value: '4',       label: 'Active verticals', sub: 'Healthcare, debt, RE & beyond', color: COLORS.compliance },
-          ].map(m => (
-            <div key={m.label} className="bg-gray-800/60 border border-gray-700/50 rounded-lg p-3 text-center">
+          ].map((m, i) => (
+            <div key={i} className="bg-gray-800/60 border border-gray-700/50 rounded-lg p-3 text-center">
               <p className="text-2xl font-bold tabular-nums" style={{ color: m.color }}>{m.value}</p>
               <p className="text-xs font-medium text-gray-300 mt-0.5">{m.label}</p>
               <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">{m.sub}</p>
