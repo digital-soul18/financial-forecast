@@ -2,8 +2,7 @@
 
 import { Download, ExternalLink } from 'lucide-react';
 
-const PDF_URL  = '/ConversationalAI-Investor-Pack.pdf';
-const VIEW_URL = `/pdf-viewer.html?file=${encodeURIComponent('/ConversationalAI-Investor-Pack.pdf')}`;
+const PDF_URL = '/ConversationalAI-Investor-Pack.pdf';
 
 export default function PitchDeckPage() {
   return (
@@ -40,10 +39,11 @@ export default function PitchDeckPage() {
         </div>
       </div>
 
-      {/* Full-bleed custom PDF viewer — black background, full width pages */}
+      {/* Full-bleed native PDF iframe */}
       <iframe
-        src={VIEW_URL}
+        src={`${PDF_URL}#toolbar=1&navpanes=0&pagemode=none&view=FitH`}
         className="flex-1 w-full border-0 bg-black"
+        style={{ colorScheme: 'dark' }}
         title="Conversational AI Investor Pitch Deck"
       />
     </div>
