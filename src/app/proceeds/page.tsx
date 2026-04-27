@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
@@ -11,7 +12,7 @@ import {
   ChevronDown, ChevronRight, CheckCircle2, Zap, Shield,
   Building2, Cpu, Headphones, Scale, ArrowRight,
   Phone, GitBranch, MessageSquare, Database, Bot,
-  Clock, Star, Globe,
+  Clock, Star, Globe, X, ChevronLeft, Maximize2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -224,6 +225,50 @@ const platformFeatures = [
   { icon: Clock,          label: 'Always-On 24/7',            desc: 'Unlike human contact centres, AI agents handle calls nights, weekends, and holidays — zero after-hours drop-off, zero overtime cost', color: '#ec4899' },
 ];
 
+// ── Platform screenshots ─────────────────────────────────────────────────────────
+const screenshots = [
+  {
+    src: '/screenshots/platform-operations-dashboard.jpeg',
+    thumb: '/screenshots/platform-operations-dashboard.jpeg',
+    title: 'Operations Dashboard',
+    desc: '179 calls last month (+202%), 12 meetings booked (+450%), hourly call distribution and SMS campaign tracking — full operational visibility in real time.',
+    tag: 'Live Dashboard',
+    tagColor: COLORS.compute,
+  },
+  {
+    src: '/screenshots/platform-analytics-agent.jpeg',
+    thumb: '/screenshots/platform-analytics-agent.jpeg',
+    title: 'AI Analytics Agent',
+    desc: 'Ask the AI for a call summary and receive a structured executive report with sentiment analysis, transfer rates, and recommended actions — generated on demand via natural language.',
+    tag: 'AI Reporting',
+    tagColor: COLORS.operations,
+  },
+  {
+    src: '/screenshots/platform-phone-agents.jpeg',
+    thumb: '/screenshots/platform-phone-agents.jpeg',
+    title: 'Multi-Agent Configuration',
+    desc: 'Multiple concurrent AI agents — Jess (outbound), Sales Agent Pro, Debt Collector, Trade SMS — each with their own persona, phone number, provider, and compliance rules.',
+    tag: 'Agent Management',
+    tagColor: COLORS.gtm,
+  },
+  {
+    src: '/screenshots/platform-system-analysis.jpeg',
+    thumb: '/screenshots/platform-system-analysis.jpeg',
+    title: 'System Analysis & Reseller Portal',
+    desc: 'Revenue vs cost per company, call vs SMS volume breakdown, top companies by revenue, and margin distribution — white-label ready for channel partners.',
+    tag: 'Reseller Module',
+    tagColor: COLORS.compliance,
+  },
+  {
+    src: '/screenshots/platform-flow-editor.jpeg',
+    thumb: '/screenshots/platform-flow-editor.jpeg',
+    title: 'Visual Flow Designer',
+    desc: 'Drag-and-drop node canvas for configuring full agent conversation flows — greeting, assist caller, take message, after hours, book/cancel appointment, transfer, wrap-up. No coding required.',
+    tag: 'Flow Editor',
+    tagColor: COLORS.product,
+  },
+];
+
 // ── Helpers ──────────────────────────────────────────────────────────────────────
 function fmtAUD(n: number) {
   return n >= 1_000_000
@@ -256,9 +301,26 @@ function PieLabel({ cx = 0, cy = 0, midAngle = 0, innerRadius = 0, outerRadius =
 export default function ProceedsPage() {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [expandedPhase, setExpandedPhase] = useState<number | null>(0);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const activeCategory = activeKey ? allocation.find(a => a.key === activeKey) : null;
   const activeBreakdown = activeKey ? (breakdowns[activeKey] ?? []) : [];
+
+  // Lightbox keyboard nav
+  const closeLightbox = useCallback(() => setLightboxIdx(null), []);
+  const prevImg = useCallback(() => setLightboxIdx(i => i === null ? null : (i - 1 + screenshots.length) % screenshots.length), []);
+  const nextImg = useCallback(() => setLightboxIdx(i => i === null ? null : (i + 1) % screenshots.length), []);
+
+  useEffect(() => {
+    if (lightboxIdx === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape')     closeLightbox();
+      if (e.key === 'ArrowLeft')  prevImg();
+      if (e.key === 'ArrowRight') nextImg();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxIdx, closeLightbox, prevImg, nextImg]);
 
   return (
     <div className="p-4 sm:p-6 space-y-8 max-w-7xl">
@@ -380,6 +442,45 @@ export default function ProceedsPage() {
             ))}
           </div>
         </div>
+
+        {/* Platform screenshots gallery */}
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Platform Screenshots — Live Product</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {screenshots.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => setLightboxIdx(i)}
+                className="group relative overflow-hidden rounded-xl border border-gray-700/60 hover:border-gray-500 transition-all text-left bg-gray-800/40 hover:bg-gray-800/70 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              >
+                <div className="relative aspect-video overflow-hidden">
+                  <Image
+                    src={s.thumb}
+                    alt={s.title}
+                    fill
+                    className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  />
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 rounded-full p-2.5">
+                      <Maximize2 className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                </div>
+                <div className="p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: s.tagColor + '20', color: s.tagColor }}>
+                      {s.tag}
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-200">{s.title}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed line-clamp-2">{s.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ── Capital allocation ── */}
@@ -422,7 +523,7 @@ export default function ProceedsPage() {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(v: number) => [fmtFull(v), 'Amount']}
+                  formatter={(v) => [fmtFull(Number(v ?? 0)), 'Amount']}
                   contentStyle={{ background: '#1f2937', border: '1px solid #374151', color: '#e5e7eb', borderRadius: 8 }}
                 />
               </PieChart>
@@ -493,7 +594,7 @@ export default function ProceedsPage() {
                   <YAxis type="category" dataKey="label" stroke="#6b7280"
                     tick={{ fontSize: 11, fill: '#9ca3af' }} width={160} />
                   <Tooltip
-                    formatter={(v: number) => [fmtFull(v), 'Amount']}
+                    formatter={(v) => [fmtFull(Number(v ?? 0)), 'Amount']}
                     contentStyle={{ background: '#1f2937', border: '1px solid #374151', color: '#e5e7eb', borderRadius: 8 }}
                   />
                   <Bar dataKey="amount" radius={[0, 4, 4, 0]} fill={activeCategory.color} fillOpacity={0.85} />
@@ -657,7 +758,7 @@ export default function ProceedsPage() {
             <XAxis dataKey="label" stroke="#6b7280" tick={{ fontSize: 11 }} />
             <YAxis stroke="#6b7280" tick={{ fontSize: 10 }} tickFormatter={v => `$${(v / 1_000_000).toFixed(1)}M`} />
             <Tooltip
-              formatter={(v: number) => [fmtFull(v), 'Projected ARR']}
+              formatter={(v) => [fmtFull(Number(v ?? 0)), 'Projected ARR']}
               contentStyle={{ background: '#1f2937', border: '1px solid #374151', color: '#e5e7eb', borderRadius: 8 }}
             />
             <Area type="monotone" dataKey="arr" stroke="#8b5cf6" fill="url(#arrGrad)" strokeWidth={2.5}
@@ -696,8 +797,8 @@ export default function ProceedsPage() {
                 <XAxis dataKey="period" stroke="#6b7280" tick={{ fontSize: 11 }} />
                 <YAxis stroke="#6b7280" tick={{ fontSize: 10 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
-                  formatter={(v: number, name: string) => [
-                    `$${v.toLocaleString()}/mo`,
+                  formatter={(v, name) => [
+                    `$${Number(v ?? 0).toLocaleString()}/mo`,
                     name === 'fullRaise' ? 'Full $1.2M raise' : 'Min $600k raise',
                   ]}
                   contentStyle={{ background: '#1f2937', border: '1px solid #374151', color: '#e5e7eb', borderRadius: 8 }}
@@ -796,6 +897,87 @@ export default function ProceedsPage() {
           ))}
         </div>
       </div>
+
+      {/* ── Lightbox ── */}
+      {lightboxIdx !== null && (() => {
+        const s = screenshots[lightboxIdx];
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+            onClick={closeLightbox}
+          >
+            {/* Close */}
+            <button
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-gray-800/80 hover:bg-gray-700 border border-gray-600 text-gray-300 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Counter */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-gray-800/80 border border-gray-700 rounded-full px-3 py-1 text-xs text-gray-300">
+              {lightboxIdx + 1} / {screenshots.length}
+            </div>
+
+            {/* Prev */}
+            <button
+              onClick={(e) => { e.stopPropagation(); prevImg(); }}
+              className="absolute left-3 sm:left-6 p-2.5 rounded-full bg-gray-800/80 hover:bg-gray-700 border border-gray-600 text-gray-300 hover:text-white transition-colors z-10"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            {/* Next */}
+            <button
+              onClick={(e) => { e.stopPropagation(); nextImg(); }}
+              className="absolute right-3 sm:right-6 p-2.5 rounded-full bg-gray-800/80 hover:bg-gray-700 border border-gray-600 text-gray-300 hover:text-white transition-colors z-10"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+            {/* Image + caption */}
+            <div
+              className="flex flex-col items-center max-w-6xl w-full mx-4 sm:mx-16"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative w-full rounded-xl overflow-hidden border border-gray-700 shadow-2xl">
+                <Image
+                  src={s.src}
+                  alt={s.title}
+                  width={2000}
+                  height={1100}
+                  className="w-full h-auto object-contain max-h-[75vh]"
+                  priority
+                />
+              </div>
+              <div className="mt-4 text-center px-4">
+                <div className="flex items-center justify-center gap-2 mb-1.5">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: s.tagColor + '25', color: s.tagColor }}>
+                    {s.tag}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-200">{s.title}</span>
+                </div>
+                <p className="text-xs text-gray-400 leading-relaxed max-w-2xl">{s.desc}</p>
+              </div>
+              {/* Thumbnail strip */}
+              <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+                {screenshots.map((t, ti) => (
+                  <button
+                    key={ti}
+                    onClick={() => setLightboxIdx(ti)}
+                    className={cn(
+                      'relative shrink-0 w-16 h-10 rounded-md overflow-hidden border-2 transition-all',
+                      ti === lightboxIdx ? 'border-violet-500 opacity-100' : 'border-gray-700 opacity-50 hover:opacity-75',
+                    )}
+                  >
+                    <Image src={t.thumb} alt={t.title} fill className="object-cover object-top" sizes="64px" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Footer callout ── */}
       <div className="bg-gradient-to-r from-violet-950/40 via-violet-900/20 to-transparent border border-violet-800/30 rounded-xl p-6">
