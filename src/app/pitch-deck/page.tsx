@@ -41,7 +41,7 @@ export default function PitchDeckPage() {
 
       {/* Full-bleed native PDF iframe */}
       <iframe
-        src={`${PDF_URL}#toolbar=1&navpanes=0&pagemode=none&view=FitH`}
+        src={`${PDF_URL}#toolbar=1&navpanes=0&pagemode=none&zoom=page-width`}
         className="flex-1 w-full border-0 bg-black"
         style={{ colorScheme: 'dark' }}
         title="Conversational AI Investor Pitch Deck"
