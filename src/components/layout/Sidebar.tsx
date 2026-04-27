@@ -17,6 +17,7 @@ import {
   Users,
   X,
   Banknote,
+  Presentation,
 } from 'lucide-react';
 
 const nav = [
@@ -29,6 +30,7 @@ const nav = [
   { href: '/market-comparison', label: 'Market Comparison', icon: Globe },
   { href: '/contractors', label: 'Contractors', icon: Users },
   { href: '/proceeds', label: 'Use of Proceeds', icon: Banknote },
+  { href: '/pitch-deck', label: 'Pitch Deck', icon: Presentation },
   { href: '/reports/rd', label: 'R&D Report', icon: FlaskConical },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
