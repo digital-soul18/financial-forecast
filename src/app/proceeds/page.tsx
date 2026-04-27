@@ -335,7 +335,7 @@ export default function ProceedsPage() {
           </p>
         </div>
         <a
-          href="/VoiceAI_Use_of_Proceeds_1.2M.docx"
+          href="/VoiceAI_Use_of_Proceeds_v2.docx"
           download
           className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-600 text-gray-200 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shrink-0"
         >
@@ -992,7 +992,7 @@ export default function ProceedsPage() {
             </p>
           </div>
           <a
-            href="/VoiceAI_Use_of_Proceeds_1.2M.docx"
+            href="/VoiceAI_Use_of_Proceeds_v2.docx"
             download
             className="flex items-center gap-2 bg-violet-700 hover:bg-violet-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors shrink-0"
           >
