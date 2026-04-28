@@ -19,7 +19,8 @@ interface SignedClient {
   mrr: number;
   calculation: CalcRow[];
   notes: string;
-  ratePerMin: number;
+  ratePerMin?: number;
+  ratePerCall?: number;
   callsPerMonth: number;
   color: string;
 }
@@ -107,6 +108,21 @@ const signedClients: SignedClient[] = [
       { label: 'Minutes / month',  value: '1,650 min' },
       { label: 'Rate',             value: '$0.57 / min (healthcare)' },
       { label: 'MRR',              value: '$940.50' },
+    ],
+  },
+  {
+    name: 'Sales Inc',
+    vertical: 'Sales & Outreach',
+    verticalColor: '#f97316',
+    mrr: 900,
+    ratePerCall: 0.30,
+    callsPerMonth: 3000,
+    color: '#f97316',
+    notes: 'Flat per-call pricing. 3,000 calls/month at $0.30 per call.',
+    calculation: [
+      { label: 'Calls / month',    value: '3,000' },
+      { label: 'Rate',             value: '$0.30 / call' },
+      { label: 'MRR',              value: '$900.00' },
     ],
   },
 ];
@@ -382,9 +398,11 @@ export default function ClientsPage() {
                         <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Stats</p>
                         {[
                           { label: 'Calls / month',  value: client.callsPerMonth.toLocaleString() },
-                          { label: 'Rate / min',     value: `$${client.ratePerMin.toFixed(2)}` },
+                          client.ratePerCall != null
+                            ? { label: 'Rate / call', value: `$${client.ratePerCall.toFixed(2)}` }
+                            : { label: 'Rate / min',  value: `$${client.ratePerMin!.toFixed(2)}` },
                           { label: 'Monthly revenue', value: fmtMoney(client.mrr, 2) },
-                          { label: 'Annual revenue', value: fmtMoney(client.mrr * 12) },
+                          { label: 'Annual revenue',  value: fmtMoney(client.mrr * 12) },
                         ].map(s => (
                           <div key={s.label} className="flex justify-between text-xs">
                             <span className="text-gray-500">{s.label}</span>
