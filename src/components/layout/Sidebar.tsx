@@ -18,6 +18,7 @@ import {
   X,
   Banknote,
   Presentation,
+  Handshake,
 } from 'lucide-react';
 
 const nav = [
@@ -28,6 +29,7 @@ const nav = [
   { href: '/voice-ai-calculator', label: 'AI Calculator', icon: Calculator },
   { href: '/cost-comparison', label: 'Cost Comparison', icon: Scale },
   { href: '/market-comparison', label: 'Market Comparison', icon: Globe },
+  { href: '/clients', label: 'Clients & Pipeline', icon: Handshake },
   { href: '/contractors', label: 'Contractors', icon: Users },
   { href: '/proceeds', label: 'Use of Proceeds', icon: Banknote },
   { href: '/pitch-deck', label: 'Pitch Deck', icon: Presentation },
