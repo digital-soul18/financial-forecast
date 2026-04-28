@@ -135,6 +135,16 @@ const pipelineClients: PipelineClient[] = [
     notes: 'Debt collection & credit management workflows. Significant one-time setup fee in addition to recurring ARR.',
   },
   {
+    name: 'CollectAU',
+    vertical: 'Debt Collection',
+    verticalColor: '#ef4444',
+    stage: 'In Discussion',
+    estimatedMRR: 5400,         // 4,000 calls × 3 min est. × $0.45 — pending duration confirmation
+    estimatedARR: 5400 * 12,
+    color: '#ef4444',
+    notes: '4,000 calls/month. Est. at 3 min avg × $0.45/min — MRR pending confirmation of avg call duration.',
+  },
+  {
     name: 'More prospects coming…',
     vertical: 'Various',
     verticalColor: '#6b7280',
@@ -493,6 +503,25 @@ export default function ClientsPage() {
                       { label: 'Total year 1', value: fmtMoney(deal.estimatedARR! + skySetupMid) },
                       { label: 'Vertical', value: 'Financial Services' },
                       { label: 'Use case', value: 'Debt collection' },
+                    ].map(s => (
+                      <div key={s.label} className="text-xs">
+                        <span className="text-gray-600">{s.label}: </span>
+                        <span className="text-gray-300 font-mono">{s.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* CollectAU detail */}
+                {deal.name === 'CollectAU' && (
+                  <div className="mt-3 pt-3 border-t border-gray-800 grid grid-cols-2 sm:grid-cols-3 gap-2 pl-4">
+                    {[
+                      { label: 'Calls / month',   value: '4,000' },
+                      { label: 'Est. avg duration', value: '3 min (TBC)' },
+                      { label: 'Rate',              value: '$0.45 / min' },
+                      { label: 'Est. minutes',      value: '12,000 min' },
+                      { label: 'Est. MRR',          value: '$5,400' },
+                      { label: 'Est. ARR',          value: '$64,800' },
                     ].map(s => (
                       <div key={s.label} className="text-xs">
                         <span className="text-gray-600">{s.label}: </span>
