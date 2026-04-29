@@ -114,9 +114,19 @@ export default function ContractorPortal() {
   }
 
   if (!contractor) {
+    const apiError = (data as { error?: string } | undefined)?.error;
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-red-400 text-sm">Unable to load your profile. Please try logging in again.</div>
+        <div className="text-center space-y-2">
+          <div className="text-red-400 text-sm">Unable to load your profile.</div>
+          {apiError && <div className="text-gray-500 text-xs font-mono bg-gray-900 px-3 py-1.5 rounded">{apiError}</div>}
+          <button
+            onClick={handleLogout}
+            className="block mx-auto mt-3 text-violet-400 hover:text-violet-300 text-sm transition-colors"
+          >
+            Sign out and try again
+          </button>
+        </div>
       </div>
     );
   }

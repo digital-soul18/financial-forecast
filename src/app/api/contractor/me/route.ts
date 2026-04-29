@@ -12,10 +12,14 @@ export async function GET(req: NextRequest) {
         user: { select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true } },
         payslips: { orderBy: [{ periodYear: 'desc' }, { periodMonth: 'desc' }] },
         leaveRequests: { orderBy: { leaveDate: 'desc' } },
+        overtimeRequests: { orderBy: { overtimeDate: 'desc' } },
       },
     });
 
-    if (!contractor) return NextResponse.json({ error: 'Contractor not found' }, { status: 404 });
+    if (!contractor) {
+      console.error(`GET /api/contractor/me: no Contractor record for userId=${userId}`);
+      return NextResponse.json({ error: 'Contractor not found', userId }, { status: 404 });
+    }
 
     return NextResponse.json({
       contractor: {
@@ -34,6 +38,12 @@ export async function GET(req: NextRequest) {
           leaveDate: lr.leaveDate.toISOString(),
           createdAt: lr.createdAt.toISOString(),
           updatedAt: lr.updatedAt.toISOString(),
+        })),
+        overtimeRequests: contractor.overtimeRequests.map((ot) => ({
+          ...ot,
+          overtimeDate: ot.overtimeDate.toISOString(),
+          createdAt: ot.createdAt.toISOString(),
+          updatedAt: ot.updatedAt.toISOString(),
         })),
       },
     });
