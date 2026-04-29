@@ -522,7 +522,10 @@ export default function SettingsPage() {
           <Globe className="w-4 h-4 text-violet-400" />
           <div>
             <h2 className="text-sm font-semibold text-gray-200">Exchange Rates (→ AUD)</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Rates used when generating payslips for non-AUD contractors. Snapshots are stored per payslip at generation time.</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Live rates are fetched automatically from the ECB via Frankfurter when generating payslips.
+              Values set here are used as a fallback if the live feed is unavailable.
+            </p>
           </div>
         </div>
         <Card className="bg-gray-900 border-gray-800">
