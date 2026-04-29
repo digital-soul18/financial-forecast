@@ -5,6 +5,6 @@ cmds = ["npm ci"]
 # prisma generate must run before next build (generates the Prisma client)
 cmds = ["npx prisma generate", "npm run build"]
 
-[phases.start]
+[start]
 # Run pending migrations then start the server
-cmds = ["npx prisma migrate deploy", "npm run start"]
+cmd = "npx prisma migrate deploy && npm run start"
