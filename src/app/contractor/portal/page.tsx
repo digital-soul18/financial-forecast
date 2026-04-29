@@ -159,8 +159,8 @@ export default function ContractorPortal() {
         {/* Stats bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Daily Rate</p>
-            <p className="text-white font-semibold text-lg">{contractor.currency} {fmt(contractor.dailyRate)}</p>
+            <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Monthly Rate</p>
+            <p className="text-white font-semibold text-lg">{contractor.currency} {fmt(contractor.dailyRate * 22)}</p>
           </div>
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Payslips</p>
