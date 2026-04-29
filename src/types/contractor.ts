@@ -31,6 +31,18 @@ export interface LeaveRequest {
   updatedAt: string;
 }
 
+export interface OvertimeRequest {
+  id: string;
+  contractorId: string;
+  overtimeDate: string;
+  hours: number;
+  reason: string;
+  status: 'pending' | 'approved' | 'denied';
+  adminNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Payslip {
   id: string;
   contractorId: string;
@@ -42,7 +54,12 @@ export interface Payslip {
   dailyRateSnap: number;
   grossAmount: number;
   deductions: number;
+  overtimeHours: number;
+  overtimeAmount: number;
   netAmount: number;
+  currency: string;
+  currencySnapRate: number;
+  netAmountAud: number;
   paymentStatus: 'pending' | 'paid';
   paidAmount: number | null;
   paidAt: string | null;
@@ -51,5 +68,6 @@ export interface Payslip {
 
 export interface ContractorWithDetails extends ContractorRecord {
   leaveRequests: LeaveRequest[];
+  overtimeRequests: OvertimeRequest[];
   payslips: Payslip[];
 }

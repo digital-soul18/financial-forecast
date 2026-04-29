@@ -19,6 +19,7 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
       include: {
         user: true,
         leaveRequests: { orderBy: { leaveDate: 'desc' } },
+        overtimeRequests: { orderBy: { overtimeDate: 'desc' } },
         payslips: { orderBy: [{ periodYear: 'desc' }, { periodMonth: 'desc' }] },
       },
     });
@@ -30,6 +31,9 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
         user: serializeDates(contractor.user as unknown as Record<string, unknown>),
         leaveRequests: contractor.leaveRequests.map(lr =>
           serializeDates(lr as unknown as Record<string, unknown>)
+        ),
+        overtimeRequests: contractor.overtimeRequests.map(ot =>
+          serializeDates(ot as unknown as Record<string, unknown>)
         ),
         payslips: contractor.payslips.map(p =>
           serializeDates(p as unknown as Record<string, unknown>)
@@ -53,6 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
     if ('name' in body) { contractorUpdates.name = body.name; userUpdates.name = body.name; }
     if ('dailyRate' in body) contractorUpdates.dailyRate = Number(body.dailyRate);
     if ('startDate' in body) contractorUpdates.startDate = new Date(body.startDate);
+    if ('currency' in body) contractorUpdates.currency = String(body.currency).toUpperCase();
     if ('isActive' in body) {
       contractorUpdates.isActive = body.isActive;
       userUpdates.isActive = body.isActive;

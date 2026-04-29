@@ -1,13 +1,14 @@
 'use client';
 
-import useSWR from 'swr';
+import useSWR, { mutate as globalMutate } from 'swr';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Users, Shield, UserCheck, UserX, ExternalLink, Send, RotateCcw, UserPlus, X, ChevronDown } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Trash2, Users, Shield, UserCheck, UserX, ExternalLink, Send, RotateCcw, UserPlus, X, Globe, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SUPPORTED_CURRENCIES } from '@/lib/contractors/currencies';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -147,6 +148,69 @@ export default function SettingsPage() {
   async function deleteRule(id: string) {
     await fetch(`/api/rules/${id}`, { method: 'DELETE' });
     mutateRules();
+  }
+
+  // ── Exchange Rates ─────────────────────────────────────────────────────────
+  const { data: fxData, mutate: mutateFx } = useSWR<{ rates: { currency: string; rateToAud: number; updatedAt: string }[] }>(
+    '/api/settings/exchange-rates', fetcher,
+  );
+  const [fxEdits, setFxEdits] = useState<Record<string, string>>({});
+  const [fxSaving, setFxSaving] = useState(false);
+  const [fxMsg, setFxMsg] = useState('');
+
+  const storedRates = Object.fromEntries((fxData?.rates ?? []).map((r) => [r.currency, r.rateToAud]));
+  const DEFAULT_RATES: Record<string, number> = { USD: 1.57, PHP: 0.027, GBP: 2.02, EUR: 1.73, NZD: 0.91, SGD: 1.17, INR: 0.018 };
+
+  async function saveFxRates() {
+    setFxSaving(true);
+    setFxMsg('');
+    const payload: Record<string, number> = {};
+    for (const [cur, val] of Object.entries(fxEdits)) {
+      const n = parseFloat(val);
+      if (!isNaN(n) && n > 0) payload[cur] = n;
+    }
+    const res = await fetch('/api/settings/exchange-rates', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) { setFxMsg('Rates saved.'); setFxEdits({}); mutateFx(); }
+    else setFxMsg('Failed to save rates.');
+    setFxSaving(false);
+    setTimeout(() => setFxMsg(''), 3000);
+  }
+
+  // ── Approver Settings ──────────────────────────────────────────────────────
+  const { data: appSettingsData, mutate: mutateAppSettings } = useSWR<{ settings: Record<string, string> }>(
+    '/api/settings', fetcher,
+  );
+  const [approverForm, setApproverForm] = useState({ approver_email: '', approver_name: '' });
+  const [approverLoaded, setApproverLoaded] = useState(false);
+  const [approverSaving, setApproverSaving] = useState(false);
+  const [approverMsg, setApproverMsg] = useState('');
+
+  // Populate form when data loads
+  if (appSettingsData && !approverLoaded) {
+    setApproverForm({
+      approver_email: appSettingsData.settings.approver_email ?? '',
+      approver_name: appSettingsData.settings.approver_name ?? '',
+    });
+    setApproverLoaded(true);
+  }
+
+  async function saveApproverSettings(e: React.FormEvent) {
+    e.preventDefault();
+    setApproverSaving(true);
+    setApproverMsg('');
+    const res = await fetch('/api/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(approverForm),
+    });
+    if (res.ok) { setApproverMsg('Saved.'); mutateAppSettings(); }
+    else setApproverMsg('Failed to save.');
+    setApproverSaving(false);
+    setTimeout(() => setApproverMsg(''), 3000);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -403,6 +467,113 @@ export default function SettingsPage() {
       <div className="text-sm text-gray-500">
         <a href="/settings/rd-config" className="text-violet-400 hover:text-violet-300">Configure R&D % by subcategory →</a>
       </div>
+
+      {/* ── Notification Approver ────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-violet-400" />
+          <div>
+            <h2 className="text-sm font-semibold text-gray-200">Approver</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Who receives leave &amp; overtime request emails with approve/deny buttons</p>
+          </div>
+        </div>
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="p-5">
+            <form onSubmit={saveApproverSettings} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Approver Email</label>
+                  <input
+                    type="email"
+                    value={approverForm.approver_email}
+                    onChange={(e) => setApproverForm((p) => ({ ...p, approver_email: e.target.value }))}
+                    placeholder="e.g. sowrabh@digital-soul.com.au"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+                  />
+                  <p className="text-[11px] text-gray-600">If blank, falls back to the first active admin user.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Approver Name</label>
+                  <input
+                    type="text"
+                    value={approverForm.approver_name}
+                    onChange={(e) => setApproverForm((p) => ({ ...p, approver_name: e.target.value }))}
+                    placeholder="e.g. Sowrabh"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+                  />
+                  <p className="text-[11px] text-gray-600">Shown to contractors in status emails ("Note from…").</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button type="submit" disabled={approverSaving}
+                  className="bg-violet-700 hover:bg-violet-600 text-white text-xs px-4 h-8">
+                  {approverSaving ? 'Saving…' : 'Save Approver'}
+                </Button>
+                {approverMsg && <span className="text-xs text-emerald-400">{approverMsg}</span>}
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* ── Exchange Rates ────────────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Globe className="w-4 h-4 text-violet-400" />
+          <div>
+            <h2 className="text-sm font-semibold text-gray-200">Exchange Rates (→ AUD)</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Rates used when generating payslips for non-AUD contractors. Snapshots are stored per payslip at generation time.</p>
+          </div>
+        </div>
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="p-5 space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {SUPPORTED_CURRENCIES.filter((c) => c !== 'AUD').map((cur) => {
+                const stored = storedRates[cur];
+                const def = DEFAULT_RATES[cur] ?? 1;
+                const editVal = fxEdits[cur];
+                const displayVal = editVal !== undefined ? editVal : (stored != null ? String(stored) : String(def));
+                const isDirty = editVal !== undefined;
+                return (
+                  <div key={cur} className="space-y-1">
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                      {cur}
+                      {stored != null ? (
+                        <span className="text-[10px] text-emerald-600 font-normal">saved</span>
+                      ) : (
+                        <span className="text-[10px] text-gray-600 font-normal">default</span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.0001"
+                        min="0.0001"
+                        value={displayVal}
+                        onChange={(e) => setFxEdits((p) => ({ ...p, [cur]: e.target.value }))}
+                        className={cn(
+                          'w-full bg-gray-800 border rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-violet-500 transition-colors',
+                          isDirty ? 'border-violet-600' : 'border-gray-700',
+                        )}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-600">AUD</span>
+                    </div>
+                    <p className="text-[10px] text-gray-600">1 {cur} = {displayVal || '?'} AUD</p>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-3 pt-1 border-t border-gray-800">
+              <Button onClick={saveFxRates} disabled={fxSaving || Object.keys(fxEdits).length === 0}
+                className="bg-violet-700 hover:bg-violet-600 text-white text-xs px-4 h-8 disabled:opacity-40">
+                {fxSaving ? 'Saving…' : 'Save Rates'}
+              </Button>
+              {fxMsg && <span className="text-xs text-emerald-400">{fxMsg}</span>}
+              <span className="text-xs text-gray-600 ml-auto">AUD is always 1:1 (base currency)</span>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
       {/* ── New User Dialog ──────────────────────────────────────────────────── */}
       {showDialog && (

@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, email: rawEmail, dailyRate, startDate } = body;
+    const { name, email: rawEmail, dailyRate, startDate, currency } = body;
 
     const email = String(rawEmail ?? '').trim().toLowerCase();
     if (!name || !email || !dailyRate || !startDate) {
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
           name,
           dailyRate: Number(dailyRate),
           startDate: new Date(startDate),
-          currency: 'AUD',
+          currency: typeof currency === 'string' ? currency.toUpperCase() : 'AUD',
           isActive: true,
         },
         include: { user: true },

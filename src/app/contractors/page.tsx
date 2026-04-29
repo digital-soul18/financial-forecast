@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { UserPlus, Users, ChevronRight, CircleDot, CircleOff, Mail, AlertTriangle } from 'lucide-react';
 import type { ContractorRecord } from '@/types/contractor';
+import { SUPPORTED_CURRENCIES } from '@/lib/contractors/currencies';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -23,7 +24,7 @@ export default function ContractorsPage() {
 
   // Add contractor form state
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', dailyRate: '', startDate: '' });
+  const [form, setForm] = useState({ name: '', email: '', dailyRate: '', startDate: '', currency: 'AUD' });
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
@@ -53,6 +54,7 @@ export default function ContractorsPage() {
           email: form.email,
           dailyRate: Number(form.dailyRate),
           startDate: form.startDate,
+          currency: form.currency,
         }),
       });
       const body = await res.json();
@@ -62,7 +64,7 @@ export default function ContractorsPage() {
       } else {
         setFormSuccess(`${form.name} has been added and sent an invite email.`);
       }
-      setForm({ name: '', email: '', dailyRate: '', startDate: '' });
+      setForm({ name: '', email: '', dailyRate: '', startDate: '', currency: 'AUD' });
       setShowForm(false);
       mutate();
     } finally {
@@ -131,17 +133,17 @@ export default function ContractorsPage() {
           <p className="text-white text-2xl font-bold">{activeContractors.length}</p>
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Total Daily Cost</p>
+          <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Currencies</p>
           <p className="text-white text-2xl font-bold">
-            AUD {fmt(activeContractors.reduce((s, c) => s + c.dailyRate, 0))}
+            {[...new Set(activeContractors.map((c) => c.currency))].join(' · ') || '—'}
           </p>
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Est. Monthly Cost</p>
-          <p className="text-white text-2xl font-bold">
-            AUD {fmt(activeContractors.reduce((s, c) => s + c.dailyRate * 22, 0))}
+          <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Payslip rates set in</p>
+          <p className="text-white text-sm font-medium mt-1">
+            {activeContractors.map((c) => `${c.name.split(' ')[0]}: ${c.currency}`).join(' · ') || '—'}
           </p>
-          <p className="text-gray-600 text-xs mt-1">~22 working days</p>
+          <p className="text-gray-600 text-xs mt-1">AUD equiv. shown on payslips</p>
         </div>
       </div>
 
@@ -187,17 +189,26 @@ export default function ContractorsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Daily Rate (AUD)</label>
-                <input
-                  type="number"
-                  value={form.dailyRate}
-                  onChange={handleChange('dailyRate')}
-                  required
-                  min="0"
-                  step="0.01"
-                  placeholder="500.00"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                />
+                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Daily Rate</label>
+                <div className="flex gap-2">
+                  <select
+                    value={form.currency}
+                    onChange={(e) => setForm((p) => ({ ...p, currency: e.target.value }))}
+                    className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  >
+                    {SUPPORTED_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <input
+                    type="number"
+                    value={form.dailyRate}
+                    onChange={handleChange('dailyRate')}
+                    required
+                    min="0"
+                    step="0.01"
+                    placeholder="500.00"
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Start Date</label>
@@ -261,7 +272,7 @@ export default function ContractorsPage() {
                   </td>
                   <td className="px-4 py-3.5 text-sm text-gray-400">{c.user.email}</td>
                   <td className="px-4 py-3.5 text-sm text-violet-300 font-medium text-right">
-                    AUD {fmt(c.dailyRate)}
+                    {c.currency} {fmt(c.dailyRate)}
                   </td>
                   <td className="px-4 py-3.5 text-sm text-gray-400">
                     {format(new Date(c.startDate), 'd MMM yyyy')}

@@ -18,8 +18,9 @@ const PUBLIC_PREFIXES = [
   '/api/auth/logout',
 ];
 
-// Pattern for HMAC-protected leave action links (no cookie needed)
-const LEAVE_ACTION_RE = /^\/api\/leave\/[^/]+\/action$/;
+// Patterns for HMAC-protected action links (no cookie needed)
+const LEAVE_ACTION_RE    = /^\/api\/leave\/[^/]+\/action$/;
+const OVERTIME_ACTION_RE = /^\/api\/overtime\/[^/]+\/action$/;
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
@@ -38,8 +39,8 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return NextResponse.next();
   }
 
-  // Allow HMAC-protected leave action endpoint (no session needed)
-  if (LEAVE_ACTION_RE.test(pathname)) {
+  // Allow HMAC-protected leave / overtime action endpoints (no session needed)
+  if (LEAVE_ACTION_RE.test(pathname) || OVERTIME_ACTION_RE.test(pathname)) {
     return NextResponse.next();
   }
 

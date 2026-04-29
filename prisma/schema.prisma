@@ -135,18 +135,19 @@ model OtpToken {
 }
 
 model Contractor {
-  id            String         @id @default(cuid())
-  userId        String         @unique
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name          String
-  dailyRate     Float
-  currency      String         @default("AUD")
-  startDate     DateTime
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  leaveRequests LeaveRequest[]
-  payslips      Payslip[]
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  dailyRate        Float
+  currency         String            @default("AUD")
+  startDate        DateTime
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  leaveRequests    LeaveRequest[]
+  overtimeRequests OvertimeRequest[]
+  payslips         Payslip[]
 }
 
 model LeaveRequest {
@@ -165,24 +166,58 @@ model LeaveRequest {
 }
 
 model Payslip {
-  id            String     @id @default(cuid())
-  contractorId  String
-  contractor    Contractor @relation(fields: [contractorId], references: [id])
-  periodMonth   Int        // 1–12
-  periodYear    Int
-  workingDays   Int        // Mon–Fri in period (pro-rated if start date mid-month)
-  leaveDays     Int        // approved Mon–Fri leave days deducted
-  billableDays  Int        // workingDays - leaveDays
-  dailyRateSnap Float      // snapshot at generation time
-  grossAmount   Float      // workingDays × dailyRateSnap
-  deductions    Float      // leaveDays × dailyRateSnap
-  netAmount     Float      // billableDays × dailyRateSnap
-  paymentStatus String     @default("pending") // "pending" | "paid"
-  paidAmount    Float?
-  paidAt        DateTime?
-  generatedAt   DateTime   @default(now())
+  id               String     @id @default(cuid())
+  contractorId     String
+  contractor       Contractor @relation(fields: [contractorId], references: [id])
+  periodMonth      Int        // 1–12
+  periodYear       Int
+  workingDays      Int        // Mon–Fri in period (pro-rated if start date mid-month)
+  leaveDays        Int        // approved Mon–Fri leave days deducted
+  billableDays     Int        // workingDays - leaveDays
+  dailyRateSnap    Float      // snapshot at generation time (in contractor's currency)
+  grossAmount      Float      // workingDays × dailyRateSnap
+  deductions       Float      // leaveDays × dailyRateSnap
+  overtimeHours    Float      @default(0)  // approved overtime hours in period
+  overtimeAmount   Float      @default(0)  // overtimeHours × (dailyRateSnap / 8)
+  netAmount        Float      // (billableDays × dailyRateSnap) + overtimeAmount
+  currency         String     @default("AUD")  // snapshot of contractor.currency
+  currencySnapRate Float      @default(1)      // 1 unit currency = X AUD at gen time
+  netAmountAud     Float      @default(0)      // netAmount × currencySnapRate
+  paymentStatus    String     @default("pending") // "pending" | "paid"
+  paidAmount       Float?
+  paidAt           DateTime?
+  generatedAt      DateTime   @default(now())
 
   @@unique([contractorId, periodMonth, periodYear])
   @@index([contractorId])
   @@index([paymentStatus])
+}
+
+model OvertimeRequest {
+  id           String     @id @default(cuid())
+  contractorId String
+  contractor   Contractor @relation(fields: [contractorId], references: [id])
+  overtimeDate DateTime   // single day per record
+  hours        Float      // hours of overtime
+  reason       String
+  status       String     @default("pending") // "pending" | "approved" | "denied"
+  adminNote    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([contractorId])
+  @@index([status])
+}
+
+model ExchangeRate {
+  currency  String   @id  // "USD", "PHP", etc. (AUD is always 1, not stored)
+  rateToAud Float        // 1 unit of this currency = rateToAud AUD
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }

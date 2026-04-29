@@ -139,13 +139,18 @@ export function payslipEmailHtml(opts: {
   leaveDays: number;
   billableDays: number;
   dailyRate: number;
+  overtimeHours: number;
+  overtimeAmount: number;
   netAmount: number;
   currency: string;
+  currencySnapRate: number;
+  netAmountAud: number;
   appUrl: string;
 }): string {
   const monthName = MONTH_NAMES[opts.month];
   const fmt = (n: number) => n.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const portalUrl = `${opts.appUrl}/contractor/portal`;
+  const showFx = opts.currency !== 'AUD' && opts.currencySnapRate !== 1;
   const body = `
     <p style="margin:0 0 8px;color:#374151;font-size:16px;font-weight:600;">Hi ${opts.name},</p>
     <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Your payslip for <strong>${monthName} ${opts.year}</strong> has been generated.</p>
@@ -154,10 +159,70 @@ export function payslipEmailHtml(opts: {
         <td style="padding:10px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Item</td>
         <td style="padding:10px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;text-align:right;">Amount</td>
       </tr>
-      <tr><td style="padding:10px 16px;color:#374151;font-size:14px;">Working Days (${opts.workingDays} × ${opts.currency} ${fmt(opts.dailyRate)})</td><td style="padding:10px 16px;text-align:right;color:#374151;font-size:14px;">${opts.currency} ${fmt(opts.workingDays * opts.dailyRate)}</td></tr>
-      <tr style="background:#fef2f2;"><td style="padding:10px 16px;color:#dc2626;font-size:14px;">Leave Deduction (${opts.leaveDays} day${opts.leaveDays !== 1 ? 's' : ''})</td><td style="padding:10px 16px;text-align:right;color:#dc2626;font-size:14px;">− ${opts.currency} ${fmt(opts.leaveDays * opts.dailyRate)}</td></tr>
+      <tr><td style="padding:10px 16px;color:#374151;font-size:14px;">Working Days (${opts.billableDays} × ${opts.currency} ${fmt(opts.dailyRate)})</td><td style="padding:10px 16px;text-align:right;color:#374151;font-size:14px;">${opts.currency} ${fmt(opts.billableDays * opts.dailyRate)}</td></tr>
+      ${opts.leaveDays > 0 ? `<tr style="background:#fef2f2;"><td style="padding:10px 16px;color:#dc2626;font-size:14px;">Leave Deduction (${opts.leaveDays} day${opts.leaveDays !== 1 ? 's' : ''})</td><td style="padding:10px 16px;text-align:right;color:#dc2626;font-size:14px;">−${opts.currency} ${fmt(opts.leaveDays * opts.dailyRate)}</td></tr>` : ''}
+      ${opts.overtimeHours > 0 ? `<tr style="background:#f0fdf4;"><td style="padding:10px 16px;color:#059669;font-size:14px;">Overtime (${opts.overtimeHours}h × ${opts.currency} ${fmt(opts.dailyRate / 8)}/h)</td><td style="padding:10px 16px;text-align:right;color:#059669;font-size:14px;">+${opts.currency} ${fmt(opts.overtimeAmount)}</td></tr>` : ''}
       <tr style="background:${BRAND_LIGHT};"><td style="padding:12px 16px;color:${BRAND_COLOR};font-size:15px;font-weight:700;">Net Amount</td><td style="padding:12px 16px;text-align:right;color:${BRAND_COLOR};font-size:15px;font-weight:700;">${opts.currency} ${fmt(opts.netAmount)}</td></tr>
+      ${showFx ? `<tr style="background:#f9fafb;"><td style="padding:10px 16px;color:#6b7280;font-size:13px;">AUD Equivalent (rate: ${opts.currencySnapRate.toFixed(4)})</td><td style="padding:10px 16px;text-align:right;color:#374151;font-size:13px;font-weight:600;">AUD ${fmt(opts.netAmountAud)}</td></tr>` : ''}
     </table>
     <div style="text-align:center;margin:24px 0;">${btn(portalUrl, 'View in Portal')}</div>`;
+  return wrapper(body);
+}
+
+// ─── Overtime Request Email (to approver) ────────────────────────────────────
+
+export function overtimeRequestEmailHtml(opts: {
+  contractorName: string;
+  overtimeDate: string;
+  hours: number;
+  reason: string;
+  approveUrl: string;
+  denyUrl: string;
+}): string {
+  const body = `
+    <p style="margin:0 0 8px;color:#374151;font-size:16px;font-weight:600;">Overtime Request</p>
+    <p style="margin:0 0 24px;color:#6b7280;font-size:14px;"><strong>${opts.contractorName}</strong> has submitted an overtime request.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:24px;">
+      <tr><td style="padding:6px 0;">
+        <span style="color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Date</span><br>
+        <span style="color:#111827;font-size:14px;font-weight:600;">${opts.overtimeDate}</span>
+      </td></tr>
+      <tr><td style="padding:6px 0;">
+        <span style="color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Hours</span><br>
+        <span style="color:#111827;font-size:14px;font-weight:600;">${opts.hours}h</span>
+      </td></tr>
+      <tr><td style="padding:6px 0;">
+        <span style="color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Reason</span><br>
+        <span style="color:#374151;font-size:14px;">${opts.reason}</span>
+      </td></tr>
+    </table>
+    <div style="text-align:center;">
+      ${btn(opts.approveUrl, '✓ Approve', '#059669')}
+      &nbsp;&nbsp;
+      ${btn(opts.denyUrl, '✗ Deny', '#dc2626')}
+    </div>
+    <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;text-align:center;">Clicking a button takes immediate effect. You can also manage overtime in the Contractor Portal.</p>`;
+  return wrapper(body);
+}
+
+// ─── Overtime Status Email (to contractor) ────────────────────────────────────
+
+export function overtimeStatusEmailHtml(opts: {
+  name: string;
+  overtimeDate: string;
+  hours: number;
+  status: 'approved' | 'denied';
+  adminNote?: string;
+}): string {
+  const isApproved = opts.status === 'approved';
+  const statusColor = isApproved ? '#059669' : '#dc2626';
+  const statusLabel = isApproved ? 'Approved ✓' : 'Denied ✗';
+  const body = `
+    <p style="margin:0 0 8px;color:#374151;font-size:16px;font-weight:600;">Hi ${opts.name},</p>
+    <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Your overtime request for <strong>${opts.overtimeDate}</strong> (${opts.hours}h) has been reviewed.</p>
+    <div style="text-align:center;margin:24px 0;">
+      <span style="display:inline-block;background:${isApproved ? '#dcfce7' : '#fee2e2'};color:${statusColor};font-size:20px;font-weight:700;padding:12px 32px;border-radius:8px;">${statusLabel}</span>
+    </div>
+    ${opts.adminNote ? `<p style="margin:16px 0 0;color:#6b7280;font-size:14px;text-align:center;">Note from manager: <em>${opts.adminNote}</em></p>` : ''}`;
   return wrapper(body);
 }

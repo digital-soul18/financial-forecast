@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { format } from 'date-fns';
-import { LogOut, Calendar, FileText, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import type { ContractorWithDetails, LeaveRequest, Payslip } from '@/types/contractor';
+import {
+  LogOut, Calendar, FileText, Clock, CheckCircle2, XCircle, AlertCircle, Zap,
+} from 'lucide-react';
+import type { ContractorWithDetails, LeaveRequest, OvertimeRequest, Payslip } from '@/types/contractor';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -32,13 +34,24 @@ export default function ContractorPortal() {
   const { data, isLoading } = useSWR<{ contractor: ContractorWithDetails }>('/api/contractor/me', fetcher);
   const contractor = data?.contractor;
 
-  const [tab, setTab] = useState<'payslips' | 'leave'>('payslips');
+  const [tab, setTab] = useState<'payslips' | 'leave' | 'overtime'>('payslips');
+
+  // Leave form state
   const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [leaveDate, setLeaveDate] = useState('');
   const [leaveReason, setLeaveReason] = useState('');
-  const [submitLoading, setSubmitLoading] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [submitSuccess, setSubmitSuccess] = useState('');
+  const [leaveLoading, setLeaveLoading] = useState(false);
+  const [leaveError, setLeaveError] = useState('');
+  const [leaveSuccess, setLeaveSuccess] = useState('');
+
+  // Overtime form state
+  const [showOtForm, setShowOtForm] = useState(false);
+  const [otDate, setOtDate] = useState('');
+  const [otHours, setOtHours] = useState('');
+  const [otReason, setOtReason] = useState('');
+  const [otLoading, setOtLoading] = useState(false);
+  const [otError, setOtError] = useState('');
+  const [otSuccess, setOtSuccess] = useState('');
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -47,9 +60,9 @@ export default function ContractorPortal() {
 
   async function handleSubmitLeave(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitLoading(true);
-    setSubmitError('');
-    setSubmitSuccess('');
+    setLeaveLoading(true);
+    setLeaveError('');
+    setLeaveSuccess('');
     try {
       const res = await fetch('/api/leave', {
         method: 'POST',
@@ -57,14 +70,38 @@ export default function ContractorPortal() {
         body: JSON.stringify({ leaveDate, reason: leaveReason }),
       });
       const body = await res.json();
-      if (!res.ok) { setSubmitError(body.error ?? 'Failed to submit'); return; }
-      setSubmitSuccess('Leave request submitted. Your manager has been notified.');
+      if (!res.ok) { setLeaveError(body.error ?? 'Failed to submit'); return; }
+      setLeaveSuccess('Leave request submitted. Your manager has been notified.');
       setLeaveDate('');
       setLeaveReason('');
       setShowLeaveForm(false);
       mutate('/api/contractor/me');
     } finally {
-      setSubmitLoading(false);
+      setLeaveLoading(false);
+    }
+  }
+
+  async function handleSubmitOvertime(e: React.FormEvent) {
+    e.preventDefault();
+    setOtLoading(true);
+    setOtError('');
+    setOtSuccess('');
+    try {
+      const res = await fetch('/api/overtime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overtimeDate: otDate, hours: Number(otHours), reason: otReason }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setOtError(body.error ?? 'Failed to submit'); return; }
+      setOtSuccess('Overtime request submitted. Your manager has been notified.');
+      setOtDate('');
+      setOtHours('');
+      setOtReason('');
+      setShowOtForm(false);
+      mutate('/api/contractor/me');
+    } finally {
+      setOtLoading(false);
     }
   }
 
@@ -86,6 +123,8 @@ export default function ContractorPortal() {
 
   const payslips: Payslip[] = contractor.payslips ?? [];
   const leaveRequests: LeaveRequest[] = contractor.leaveRequests ?? [];
+  const overtimeRequests: OvertimeRequest[] = contractor.overtimeRequests ?? [];
+  const showAud = contractor.currency !== 'AUD';
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -108,7 +147,7 @@ export default function ContractorPortal() {
 
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
         {/* Stats bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Daily Rate</p>
             <p className="text-white font-semibold text-lg">{contractor.currency} {fmt(contractor.dailyRate)}</p>
@@ -121,32 +160,38 @@ export default function ContractorPortal() {
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Leave Days</p>
             <p className="text-white font-semibold text-lg">{leaveRequests.filter((l) => l.status === 'approved').length}</p>
           </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Overtime (approved)</p>
+            <p className="text-white font-semibold text-lg">
+              {overtimeRequests.filter((o) => o.status === 'approved').reduce((s, o) => s + o.hours, 0)}h
+            </p>
+          </div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-800">
-          <button
-            onClick={() => setTab('payslips')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'payslips' ? 'border-violet-500 text-violet-400' : 'border-transparent text-gray-400 hover:text-white'}`}
-          >
-            <FileText className="w-4 h-4" />
-            Payslips
-          </button>
-          <button
-            onClick={() => setTab('leave')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'leave' ? 'border-violet-500 text-violet-400' : 'border-transparent text-gray-400 hover:text-white'}`}
-          >
-            <Calendar className="w-4 h-4" />
-            Leave Requests
-            {leaveRequests.filter((l) => l.status === 'pending').length > 0 && (
-              <span className="bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {leaveRequests.filter((l) => l.status === 'pending').length}
-              </span>
-            )}
-          </button>
+          {([
+            { key: 'payslips', label: 'Payslips', icon: FileText, badge: 0 },
+            { key: 'leave',    label: 'Leave Requests', icon: Calendar,
+              badge: leaveRequests.filter((l) => l.status === 'pending').length },
+            { key: 'overtime', label: 'Overtime', icon: Zap,
+              badge: overtimeRequests.filter((o) => o.status === 'pending').length },
+          ] as const).map(({ key, label, icon: Icon, badge }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === key ? 'border-violet-500 text-violet-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+              {badge > 0 && (
+                <span className="bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">{badge}</span>
+              )}
+            </button>
+          ))}
         </div>
 
-        {/* Payslips tab */}
+        {/* ── Payslips tab ── */}
         {tab === 'payslips' && (
           <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
             {payslips.length === 0 ? (
@@ -157,14 +202,14 @@ export default function ContractorPortal() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-              <table className="w-full min-w-[480px]">
+              <table className="w-full min-w-[520px]">
                 <thead>
                   <tr className="border-b border-gray-800">
                     <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Period</th>
-                    <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Working Days</th>
-                    <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Leave Days</th>
-                    <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Billable Days</th>
-                    <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Net Amount</th>
+                    <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Days</th>
+                    <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">OT hrs</th>
+                    <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Net ({contractor.currency})</th>
+                    {showAud && <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Net (AUD)</th>}
                     <th className="text-center px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Status</th>
                   </tr>
                 </thead>
@@ -172,12 +217,20 @@ export default function ContractorPortal() {
                   {payslips.map((p) => (
                     <tr key={p.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition-colors">
                       <td className="px-5 py-3.5 text-sm text-white font-medium">{MONTH_NAMES[p.periodMonth]} {p.periodYear}</td>
-                      <td className="px-4 py-3.5 text-sm text-gray-300 text-right">{p.workingDays}</td>
+                      <td className="px-4 py-3.5 text-sm text-gray-300 text-right">{p.billableDays}/{p.workingDays}</td>
                       <td className="px-4 py-3.5 text-sm text-right">
-                        <span className={p.leaveDays > 0 ? 'text-red-400' : 'text-gray-500'}>{p.leaveDays}</span>
+                        <span className={(p.overtimeHours ?? 0) > 0 ? 'text-emerald-400' : 'text-gray-600'}>
+                          {(p.overtimeHours ?? 0) > 0 ? `${p.overtimeHours}h` : '—'}
+                        </span>
                       </td>
-                      <td className="px-4 py-3.5 text-sm text-gray-300 text-right">{p.billableDays}</td>
-                      <td className="px-4 py-3.5 text-sm text-violet-300 font-semibold text-right">{contractor.currency} {fmt(p.netAmount)}</td>
+                      <td className="px-4 py-3.5 text-sm text-violet-300 font-semibold text-right">
+                        {contractor.currency} {fmt(p.netAmount)}
+                      </td>
+                      {showAud && (
+                        <td className="px-4 py-3.5 text-sm text-gray-400 text-right">
+                          AUD {fmt(p.netAmountAud ?? p.netAmount)}
+                        </td>
+                      )}
                       <td className="px-4 py-3.5 text-center"><PaymentBadge status={p.paymentStatus} /></td>
                     </tr>
                   ))}
@@ -188,76 +241,51 @@ export default function ContractorPortal() {
           </div>
         )}
 
-        {/* Leave tab */}
+        {/* ── Leave tab ── */}
         {tab === 'leave' && (
           <div className="space-y-4">
-            {submitSuccess && (
+            {leaveSuccess && (
               <div className="bg-emerald-950 border border-emerald-800 text-emerald-300 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />{submitSuccess}
+                <CheckCircle2 className="w-4 h-4 shrink-0" />{leaveSuccess}
               </div>
             )}
-
-            {/* Request leave button */}
             {!showLeaveForm && (
               <div className="flex justify-end">
                 <button
-                  onClick={() => { setShowLeaveForm(true); setSubmitSuccess(''); }}
+                  onClick={() => { setShowLeaveForm(true); setLeaveSuccess(''); }}
                   className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                 >
-                  <Clock className="w-4 h-4" />
-                  Request Leave
+                  <Clock className="w-4 h-4" />Request Leave
                 </button>
               </div>
             )}
-
-            {/* Leave request form */}
             {showLeaveForm && (
               <form onSubmit={handleSubmitLeave} className="bg-gray-900 border border-gray-700 rounded-xl p-5 space-y-4">
                 <h3 className="text-white font-medium text-sm">New Leave Request</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Date</label>
-                    <input
-                      type="date"
-                      value={leaveDate}
-                      onChange={(e) => setLeaveDate(e.target.value)}
-                      required
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-                    />
+                    <input type="date" value={leaveDate} onChange={(e) => setLeaveDate(e.target.value)} required
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Reason</label>
-                    <input
-                      type="text"
-                      value={leaveReason}
-                      onChange={(e) => setLeaveReason(e.target.value)}
-                      required
+                    <input type="text" value={leaveReason} onChange={(e) => setLeaveReason(e.target.value)} required
                       placeholder="e.g. Annual leave"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                    />
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500" />
                   </div>
                 </div>
-                {submitError && <p className="text-red-400 text-sm">{submitError}</p>}
+                {leaveError && <p className="text-red-400 text-sm">{leaveError}</p>}
                 <div className="flex items-center gap-3 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => { setShowLeaveForm(false); setSubmitError(''); }}
-                    className="text-gray-400 hover:text-white text-sm transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitLoading}
-                    className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-                  >
-                    {submitLoading ? 'Submitting…' : 'Submit Request'}
+                  <button type="button" onClick={() => { setShowLeaveForm(false); setLeaveError(''); }}
+                    className="text-gray-400 hover:text-white text-sm transition-colors">Cancel</button>
+                  <button type="submit" disabled={leaveLoading}
+                    className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                    {leaveLoading ? 'Submitting…' : 'Submit Request'}
                   </button>
                 </div>
               </form>
             )}
-
-            {/* Leave history */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
               {leaveRequests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -278,12 +306,100 @@ export default function ContractorPortal() {
                   <tbody>
                     {leaveRequests.map((lr) => (
                       <tr key={lr.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition-colors">
-                        <td className="px-5 py-3.5 text-sm text-white font-medium">
-                          {format(new Date(lr.leaveDate), 'EEE, d MMM yyyy')}
-                        </td>
+                        <td className="px-5 py-3.5 text-sm text-white font-medium">{format(new Date(lr.leaveDate), 'EEE, d MMM yyyy')}</td>
                         <td className="px-4 py-3.5 text-sm text-gray-300">{lr.reason}</td>
                         <td className="px-4 py-3.5 text-center"><StatusBadge status={lr.status} /></td>
                         <td className="px-4 py-3.5 text-sm text-gray-500 italic">{lr.adminNote ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Overtime tab ── */}
+        {tab === 'overtime' && (
+          <div className="space-y-4">
+            {otSuccess && (
+              <div className="bg-emerald-950 border border-emerald-800 text-emerald-300 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />{otSuccess}
+              </div>
+            )}
+            {!showOtForm && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => { setShowOtForm(true); setOtSuccess(''); }}
+                  className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                >
+                  <Zap className="w-4 h-4" />Request Overtime
+                </button>
+              </div>
+            )}
+            {showOtForm && (
+              <form onSubmit={handleSubmitOvertime} className="bg-gray-900 border border-gray-700 rounded-xl p-5 space-y-4">
+                <h3 className="text-white font-medium text-sm">New Overtime Request</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Date</label>
+                    <input type="date" value={otDate} onChange={(e) => setOtDate(e.target.value)} required
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Hours</label>
+                    <input type="number" value={otHours} onChange={(e) => setOtHours(e.target.value)} required
+                      min="0.5" max="24" step="0.5" placeholder="e.g. 2.5"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Reason</label>
+                    <input type="text" value={otReason} onChange={(e) => setOtReason(e.target.value)} required
+                      placeholder="e.g. Project deadline"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Overtime is paid at your hourly rate ({contractor.currency} {fmt(contractor.dailyRate / 8)}/h) and added to your next payslip when approved.
+                </p>
+                {otError && <p className="text-red-400 text-sm">{otError}</p>}
+                <div className="flex items-center gap-3 justify-end">
+                  <button type="button" onClick={() => { setShowOtForm(false); setOtError(''); }}
+                    className="text-gray-400 hover:text-white text-sm transition-colors">Cancel</button>
+                  <button type="submit" disabled={otLoading}
+                    className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                    {otLoading ? 'Submitting…' : 'Submit Request'}
+                  </button>
+                </div>
+              </form>
+            )}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+              {overtimeRequests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Zap className="w-10 h-10 text-gray-700 mb-3" />
+                  <p className="text-gray-400 text-sm">No overtime requests yet</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[480px]">
+                  <thead>
+                    <tr className="border-b border-gray-800">
+                      <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Date</th>
+                      <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Hours</th>
+                      <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Reason</th>
+                      <th className="text-center px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Status</th>
+                      <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Note</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {overtimeRequests.map((ot) => (
+                      <tr key={ot.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition-colors">
+                        <td className="px-5 py-3.5 text-sm text-white font-medium">{format(new Date(ot.overtimeDate), 'EEE, d MMM yyyy')}</td>
+                        <td className="px-4 py-3.5 text-sm text-emerald-400 font-medium text-right">{ot.hours}h</td>
+                        <td className="px-4 py-3.5 text-sm text-gray-300">{ot.reason}</td>
+                        <td className="px-4 py-3.5 text-center"><StatusBadge status={ot.status} /></td>
+                        <td className="px-4 py-3.5 text-sm text-gray-500 italic">{ot.adminNote ?? '—'}</td>
                       </tr>
                     ))}
                   </tbody>

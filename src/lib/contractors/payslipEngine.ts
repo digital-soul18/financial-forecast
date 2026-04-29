@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { getPayslipWorkingDays, getApprovedLeaveDays } from './workingDays';
+import { getExchangeRate } from './fx';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { payslipEmailHtml } from '@/lib/email/templates';
 import { getAppUrl } from '@/lib/appUrl';
@@ -8,6 +9,24 @@ const MONTH_NAMES = [
   '', 'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
+
+/** Hours per workday for overtime rate calculation */
+const HOURS_PER_DAY = 8;
+
+/** Approved overtime hours for a contractor in a given month/year */
+function getApprovedOvertimeHours(
+  overtimeRequests: { overtimeDate: Date; hours: number; status: string }[],
+  month: number,
+  year: number,
+): number {
+  return overtimeRequests
+    .filter((o) => {
+      if (o.status !== 'approved') return false;
+      const d = new Date(o.overtimeDate);
+      return d.getFullYear() === year && d.getMonth() + 1 === month;
+    })
+    .reduce((sum, o) => sum + o.hours, 0);
+}
 
 /**
  * Generate a payslip for a single contractor for a given month/year.
@@ -18,7 +37,7 @@ export async function generatePayslipForContractor(
   contractorId: string,
   month: number,
   year: number,
-): Promise<{ id: string; netAmount: number } | null> {
+): Promise<{ id: string; netAmount: number; netAmountAud: number } | null> {
   const contractor = await prisma.contractor.findUnique({
     where: { id: contractorId },
     include: {
@@ -27,32 +46,42 @@ export async function generatePayslipForContractor(
         where: { status: 'approved' },
         select: { leaveDate: true, status: true },
       },
+      overtimeRequests: {
+        where: { status: 'approved' },
+        select: { overtimeDate: true, hours: true, status: true },
+      },
     },
   });
 
   if (!contractor || !contractor.isActive || !contractor.user.isActive) return null;
 
-  // Check if already exists — return existing (idempotent)
+  // Idempotent — return existing
   const existing = await prisma.payslip.findUnique({
     where: {
-      contractorId_periodMonth_periodYear: {
-        contractorId,
-        periodMonth: month,
-        periodYear: year,
-      },
+      contractorId_periodMonth_periodYear: { contractorId, periodMonth: month, periodYear: year },
     },
   });
-  if (existing) return { id: existing.id, netAmount: existing.netAmount };
+  if (existing) return { id: existing.id, netAmount: existing.netAmount, netAmountAud: existing.netAmountAud };
 
   const workingDays = getPayslipWorkingDays(month, year, contractor.startDate);
-  if (workingDays === 0) return null; // Contractor not started yet
+  if (workingDays === 0) return null;
 
   const leaveDays = getApprovedLeaveDays(contractor.leaveRequests, month, year);
   const billableDays = Math.max(0, workingDays - leaveDays);
   const dailyRateSnap = contractor.dailyRate;
   const grossAmount = workingDays * dailyRateSnap;
   const deductions = leaveDays * dailyRateSnap;
-  const netAmount = billableDays * dailyRateSnap;
+
+  // Overtime
+  const overtimeHours = getApprovedOvertimeHours(contractor.overtimeRequests, month, year);
+  const overtimeAmount = overtimeHours * (dailyRateSnap / HOURS_PER_DAY);
+
+  const netAmount = (billableDays * dailyRateSnap) + overtimeAmount;
+
+  // FX conversion
+  const currency = contractor.currency ?? 'AUD';
+  const currencySnapRate = await getExchangeRate(currency);
+  const netAmountAud = netAmount * currencySnapRate;
 
   const payslip = await prisma.payslip.create({
     data: {
@@ -65,16 +94,21 @@ export async function generatePayslipForContractor(
       dailyRateSnap,
       grossAmount,
       deductions,
+      overtimeHours,
+      overtimeAmount,
       netAmount,
+      currency,
+      currencySnapRate,
+      netAmountAud,
       paymentStatus: 'pending',
     },
   });
 
-  // Send payslip email asynchronously — don't block
+  // Send payslip email
   const appUrl = getAppUrl();
   sendEmail({
     to: contractor.user.email,
-    subject: `Your payslip for ${MONTH_NAMES[month]} ${year} — ${contractor.currency} ${netAmount.toFixed(2)}`,
+    subject: `Your payslip for ${MONTH_NAMES[month]} ${year} — ${currency} ${netAmount.toFixed(2)}${currency !== 'AUD' ? ` (AUD ${netAmountAud.toFixed(2)})` : ''}`,
     html: payslipEmailHtml({
       name: contractor.name,
       month,
@@ -83,23 +117,27 @@ export async function generatePayslipForContractor(
       leaveDays,
       billableDays,
       dailyRate: dailyRateSnap,
+      overtimeHours,
+      overtimeAmount,
       netAmount,
-      currency: contractor.currency,
+      currency,
+      currencySnapRate,
+      netAmountAud,
       appUrl,
     }),
   }).catch((err) => console.error(`Failed to send payslip email to ${contractor.user.email}:`, err));
 
-  return { id: payslip.id, netAmount };
+  return { id: payslip.id, netAmount, netAmountAud };
 }
 
 /**
  * Generate payslips for ALL active contractors for the current month.
- * Called automatically on admin login on/after the 25th of the month.
- * Completely idempotent — safe to call multiple times.
+ * Called automatically on admin login on/after the 25th.
+ * Completely idempotent.
  */
 export async function triggerMonthlyPayslips(): Promise<void> {
   const now = new Date();
-  const month = now.getMonth() + 1; // 1-indexed
+  const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
   const activeContractors = await prisma.contractor.findMany({
@@ -113,7 +151,7 @@ export async function triggerMonthlyPayslips(): Promise<void> {
     try {
       const result = await generatePayslipForContractor(c.id, month, year);
       if (result) {
-        console.log(`[PayslipEngine] Generated payslip ${result.id} for contractor ${c.id} — net: ${result.netAmount}`);
+        console.log(`[PayslipEngine] Generated payslip ${result.id} — net: ${result.netAmount} (AUD ${result.netAmountAud})`);
       }
     } catch (err) {
       console.error(`[PayslipEngine] Failed for contractor ${c.id}:`, err);

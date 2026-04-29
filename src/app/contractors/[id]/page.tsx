@@ -6,9 +6,10 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import {
   ArrowLeft, Pencil, Check, X, Plus, Trash2, RefreshCw,
-  CheckCircle2, XCircle, AlertCircle, CircleDot, CircleOff,
+  CheckCircle2, XCircle, AlertCircle, CircleDot, CircleOff, Zap,
 } from 'lucide-react';
-import type { ContractorWithDetails, LeaveRequest, Payslip } from '@/types/contractor';
+import type { ContractorWithDetails, LeaveRequest, OvertimeRequest, Payslip } from '@/types/contractor';
+import { SUPPORTED_CURRENCIES } from '@/lib/contractors/currencies';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -37,14 +38,20 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
 
   // Edit info state
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', dailyRate: '', startDate: '' });
+  const [editForm, setEditForm] = useState({ name: '', dailyRate: '', startDate: '', currency: 'AUD' });
   const [editLoading, setEditLoading] = useState(false);
 
-  // Add leave form
+  // Leave form
   const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [leaveForm, setLeaveForm] = useState({ leaveDate: '', reason: '' });
   const [leaveLoading, setLeaveLoading] = useState(false);
   const [leaveError, setLeaveError] = useState('');
+
+  // Overtime form
+  const [showOtForm, setShowOtForm] = useState(false);
+  const [otForm, setOtForm] = useState({ overtimeDate: '', hours: '', reason: '' });
+  const [otLoading, setOtLoading] = useState(false);
+  const [otError, setOtError] = useState('');
 
   // Payslip generation
   const [genLoading, setGenLoading] = useState(false);
@@ -56,6 +63,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
       name: contractor.name,
       dailyRate: String(contractor.dailyRate),
       startDate: contractor.startDate.split('T')[0],
+      currency: contractor.currency ?? 'AUD',
     });
     setEditing(true);
   }
@@ -69,6 +77,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         name: editForm.name,
         dailyRate: Number(editForm.dailyRate),
         startDate: editForm.startDate,
+        currency: editForm.currency,
       }),
     });
     setEditing(false);
@@ -106,7 +115,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
       body: JSON.stringify({ month: now.getMonth() + 1, year: now.getFullYear(), contractorId: id }),
     });
     const body = await res.json();
-    setGenMessage(body.message ?? (body.generated > 0 ? `Payslip generated — AUD ${fmt(body.netAmount)}` : 'Already generated this month'));
+    setGenMessage(body.message ?? (body.generated > 0 ? `Payslip generated` : 'Already generated this month'));
     setGenLoading(false);
     mutate();
   }
@@ -143,21 +152,55 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
     mutate();
   }
 
+  async function handleOvertimeStatusChange(ot: OvertimeRequest, status: 'approved' | 'denied') {
+    await fetch(`/api/overtime/${ot.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    mutate();
+  }
+
+  async function handleOvertimeDelete(otId: string) {
+    if (!confirm('Delete this overtime request?')) return;
+    await fetch(`/api/overtime/${otId}`, { method: 'DELETE' });
+    mutate();
+  }
+
+  async function handleAddOvertime(e: React.FormEvent) {
+    e.preventDefault();
+    setOtLoading(true);
+    setOtError('');
+    const res = await fetch(`/api/contractors/${id}/overtime`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...otForm, hours: Number(otForm.hours) }),
+    });
+    const body = await res.json();
+    if (!res.ok) { setOtError(body.error ?? 'Failed to add'); setOtLoading(false); return; }
+    setShowOtForm(false);
+    setOtForm({ overtimeDate: '', hours: '', reason: '' });
+    setOtLoading(false);
+    mutate();
+  }
+
   if (isLoading) return <div className="p-6 text-gray-400 text-sm">Loading…</div>;
   if (data?.error) return <div className="p-6 text-red-400 text-sm">Error: {data.error}</div>;
   if (!contractor) return <div className="p-6 text-gray-400 text-sm">Contractor not found.</div>;
 
   const payslips: Payslip[] = contractor.payslips ?? [];
   const leaveRequests: LeaveRequest[] = contractor.leaveRequests ?? [];
+  const overtimeRequests: OvertimeRequest[] = contractor.overtimeRequests ?? [];
+  const currency = contractor.currency ?? 'AUD';
+  const showAud = currency !== 'AUD';
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-5xl">
-      {/* Back link */}
       <Link href="/contractors" className="inline-flex items-center gap-1.5 text-gray-400 hover:text-white text-sm transition-colors">
         <ArrowLeft className="w-4 h-4" />Back to Contractors
       </Link>
 
-      {/* Contractor info card */}
+      {/* ── Info card ── */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <div className="flex flex-wrap items-start gap-3 justify-between mb-4">
           <div>
@@ -183,23 +226,30 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         {editing ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Name</label>
               <input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Daily Rate (AUD)</label>
+              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Daily Rate</label>
               <input type="number" value={editForm.dailyRate} onChange={(e) => setEditForm((p) => ({ ...p, dailyRate: e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Currency</label>
+              <select value={editForm.currency} onChange={(e) => setEditForm((p) => ({ ...p, currency: e.target.value }))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                {SUPPORTED_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Start Date</label>
               <input type="date" value={editForm.startDate} onChange={(e) => setEditForm((p) => ({ ...p, startDate: e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
-            <div className="col-span-3 flex gap-2 justify-end">
+            <div className="col-span-full flex gap-2 justify-end">
               <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 text-gray-400 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors">
                 <X className="w-3.5 h-3.5" />Cancel
               </button>
@@ -212,7 +262,8 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
               <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Daily Rate</p>
-              <p className="text-violet-300 font-semibold">AUD {fmt(contractor.dailyRate)}</p>
+              <p className="text-violet-300 font-semibold">{currency} {fmt(contractor.dailyRate)}</p>
+              {showAud && <p className="text-gray-500 text-xs mt-0.5">Paid in {currency}</p>}
             </div>
             <div>
               <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Start Date</p>
@@ -220,7 +271,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
             </div>
             <div>
               <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Est. Monthly</p>
-              <p className="text-white">AUD {fmt(contractor.dailyRate * 22)}</p>
+              <p className="text-white">{currency} {fmt(contractor.dailyRate * 22)}</p>
             </div>
             <div className="flex items-end">
               <button
@@ -234,17 +285,14 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         )}
       </div>
 
-      {/* Payslips card */}
+      {/* ── Payslips ── */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
           <h2 className="text-white font-medium text-sm">Payslips</h2>
           <div className="flex items-center gap-2">
             {genMessage && <span className="text-xs text-gray-400">{genMessage}</span>}
-            <button
-              onClick={handleGeneratePayslip}
-              disabled={genLoading}
-              className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 px-3 py-1.5 rounded-lg hover:bg-gray-800 border border-gray-700 transition-colors disabled:opacity-50"
-            >
+            <button onClick={handleGeneratePayslip} disabled={genLoading}
+              className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 px-3 py-1.5 rounded-lg hover:bg-gray-800 border border-gray-700 transition-colors disabled:opacity-50">
               <RefreshCw className={`w-3 h-3 ${genLoading ? 'animate-spin' : ''}`} />
               Generate This Month
             </button>
@@ -254,14 +302,15 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
           <div className="py-12 text-center text-gray-500 text-sm">No payslips generated yet.</div>
         ) : (
           <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px]">
+          <table className="w-full min-w-[620px]">
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Period</th>
-                <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Working Days</th>
+                <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Days</th>
                 <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Leave</th>
-                <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Rate</th>
-                <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Net Amount</th>
+                <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">OT hrs</th>
+                <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Net ({currency})</th>
+                {showAud && <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Net (AUD)</th>}
                 <th className="text-center px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Payment</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -274,20 +323,28 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
                   <td className="px-4 py-3.5 text-sm text-right">
                     <span className={p.leaveDays > 0 ? 'text-red-400' : 'text-gray-500'}>{p.leaveDays}d</span>
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-gray-400 text-right">AUD {fmt(p.dailyRateSnap)}/day</td>
-                  <td className="px-4 py-3.5 text-sm text-violet-300 font-semibold text-right">AUD {fmt(p.netAmount)}</td>
+                  <td className="px-4 py-3.5 text-sm text-right">
+                    <span className={(p.overtimeHours ?? 0) > 0 ? 'text-emerald-400' : 'text-gray-600'}>
+                      {(p.overtimeHours ?? 0) > 0 ? `${p.overtimeHours}h` : '—'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5 text-sm text-violet-300 font-semibold text-right">{currency} {fmt(p.netAmount)}</td>
+                  {showAud && (
+                    <td className="px-4 py-3.5 text-sm text-gray-400 text-right">
+                      AUD {fmt(p.netAmountAud ?? p.netAmount)}
+                      {p.currencySnapRate && p.currencySnapRate !== 1 && (
+                        <span className="block text-[10px] text-gray-600">rate: {p.currencySnapRate.toFixed(4)}</span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3.5 text-center">
-                    {p.paymentStatus === 'paid' ? (
-                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-950 text-emerald-400">Paid</span>
-                    ) : (
-                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-950 text-amber-400">Unpaid</span>
-                    )}
+                    {p.paymentStatus === 'paid'
+                      ? <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-950 text-emerald-400">Paid</span>
+                      : <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-950 text-amber-400">Unpaid</span>}
                   </td>
                   <td className="px-4 py-3.5">
-                    <button
-                      onClick={() => handlePaymentToggle(p)}
-                      className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700 transition-colors"
-                    >
+                    <button onClick={() => handlePaymentToggle(p)}
+                      className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700 transition-colors">
                       {p.paymentStatus === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
                     </button>
                   </td>
@@ -299,14 +356,12 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         )}
       </div>
 
-      {/* Leave requests card */}
+      {/* ── Leave Requests ── */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
           <h2 className="text-white font-medium text-sm">Leave Requests</h2>
-          <button
-            onClick={() => { setShowLeaveForm(true); setLeaveError(''); }}
-            className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 px-3 py-1.5 rounded-lg hover:bg-gray-800 border border-gray-700 transition-colors"
-          >
+          <button onClick={() => { setShowLeaveForm(true); setLeaveError(''); }}
+            className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 px-3 py-1.5 rounded-lg hover:bg-gray-800 border border-gray-700 transition-colors">
             <Plus className="w-3 h-3" />Add Leave
           </button>
         </div>
@@ -342,7 +397,6 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         {leaveRequests.length === 0 ? (
           <div className="py-12 text-center space-y-1">
             <p className="text-gray-500 text-sm">No leave requests yet.</p>
-            <p className="text-gray-600 text-xs">The contractor can request leave from their portal, or use "Add Leave" above.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -359,9 +413,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
             <tbody>
               {leaveRequests.map((lr) => (
                 <tr key={lr.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition-colors">
-                  <td className="px-5 py-3.5 text-sm text-white font-medium">
-                    {format(new Date(lr.leaveDate), 'EEE, d MMM yyyy')}
-                  </td>
+                  <td className="px-5 py-3.5 text-sm text-white font-medium">{format(new Date(lr.leaveDate), 'EEE, d MMM yyyy')}</td>
                   <td className="px-4 py-3.5 text-sm text-gray-300">{lr.reason}</td>
                   <td className="px-4 py-3.5 text-center"><StatusBadge status={lr.status} /></td>
                   <td className="px-4 py-3.5 text-sm text-gray-500 italic">{lr.adminNote ?? '—'}</td>
@@ -380,6 +432,106 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
                         </button>
                       )}
                       <button onClick={() => handleLeaveDelete(lr.id)}
+                        className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-950 rounded transition-colors" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Overtime Requests ── */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-emerald-400" />
+            <h2 className="text-white font-medium text-sm">Overtime Requests</h2>
+          </div>
+          <button onClick={() => { setShowOtForm(true); setOtError(''); }}
+            className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 px-3 py-1.5 rounded-lg hover:bg-gray-800 border border-gray-700 transition-colors">
+            <Plus className="w-3 h-3" />Add Overtime
+          </button>
+        </div>
+
+        {showOtForm && (
+          <form onSubmit={handleAddOvertime} className="px-5 py-4 border-b border-gray-800 bg-gray-800/50">
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Date</label>
+                <input type="date" value={otForm.overtimeDate} required
+                  onChange={(e) => setOtForm((p) => ({ ...p, overtimeDate: e.target.value }))}
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Hours</label>
+                <input type="number" value={otForm.hours} required min="0.5" max="24" step="0.5" placeholder="e.g. 2"
+                  onChange={(e) => setOtForm((p) => ({ ...p, hours: e.target.value }))}
+                  className="w-24 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Reason</label>
+                <input type="text" value={otForm.reason} required placeholder="e.g. Sprint release"
+                  onChange={(e) => setOtForm((p) => ({ ...p, reason: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              </div>
+              <button type="submit" disabled={otLoading}
+                className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50">
+                {otLoading ? 'Adding…' : 'Add'}
+              </button>
+              <button type="button" onClick={() => setShowOtForm(false)}
+                className="text-gray-400 hover:text-white px-2 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {otError && <p className="text-red-400 text-xs mt-2">{otError}</p>}
+          </form>
+        )}
+
+        {overtimeRequests.length === 0 ? (
+          <div className="py-12 text-center space-y-1">
+            <p className="text-gray-500 text-sm">No overtime requests.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[540px]">
+            <thead>
+              <tr className="border-b border-gray-800">
+                <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Date</th>
+                <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Hours</th>
+                <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Reason</th>
+                <th className="text-center px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Status</th>
+                <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Note</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {overtimeRequests.map((ot) => (
+                <tr key={ot.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition-colors">
+                  <td className="px-5 py-3.5 text-sm text-white font-medium">{format(new Date(ot.overtimeDate), 'EEE, d MMM yyyy')}</td>
+                  <td className="px-4 py-3.5 text-sm text-emerald-400 font-medium text-right">{ot.hours}h</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-300">{ot.reason}</td>
+                  <td className="px-4 py-3.5 text-center"><StatusBadge status={ot.status} /></td>
+                  <td className="px-4 py-3.5 text-sm text-gray-500 italic">{ot.adminNote ?? '—'}</td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-1 justify-end">
+                      {ot.status !== 'approved' && (
+                        <button onClick={() => handleOvertimeStatusChange(ot, 'approved')}
+                          className="p-1.5 text-emerald-400 hover:bg-emerald-950 rounded transition-colors" title="Approve">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {ot.status !== 'denied' && (
+                        <button onClick={() => handleOvertimeStatusChange(ot, 'denied')}
+                          className="p-1.5 text-red-400 hover:bg-red-950 rounded transition-colors" title="Deny">
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button onClick={() => handleOvertimeDelete(ot.id)}
                         className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-950 rounded transition-colors" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>
