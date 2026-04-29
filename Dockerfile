@@ -24,4 +24,5 @@ RUN cp -r .next/static .next/standalone/.next/static && \
     cp -r public .next/standalone/public
 
 # PORT is injected by Railway at runtime
-CMD ["node", ".next/standalone/server.js"]
+# Run pending DB migrations before starting the server
+CMD ["sh", "-c", "npx prisma migrate deploy && node .next/standalone/server.js"]
