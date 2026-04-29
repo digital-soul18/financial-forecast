@@ -1,7 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { regeneratePayslip } from '@/lib/contractors/payslipEngine';
 
 type Params = Promise<{ id: string; payslipId: string }>;
+
+export async function POST(_req: NextRequest, { params }: { params: Params }) {
+  try {
+    const role = _req.headers.get('x-user-role');
+    if (role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    const { payslipId } = await params;
+    const result = await regeneratePayslip(payslipId);
+    if (!result) return NextResponse.json({ error: 'Payslip not found' }, { status: 404 });
+
+    const payslip = await prisma.payslip.findUnique({ where: { id: payslipId } });
+    return NextResponse.json({
+      payslip: {
+        ...payslip,
+        paidAt: payslip!.paidAt instanceof Date ? payslip!.paidAt.toISOString() : payslip!.paidAt,
+        generatedAt: payslip!.generatedAt instanceof Date ? payslip!.generatedAt.toISOString() : payslip!.generatedAt,
+      },
+    });
+  } catch (err) {
+    console.error('POST /api/contractors/[id]/payslips/[payslipId] error:', err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
 
 export async function PATCH(req: NextRequest, { params }: { params: Params }) {
   try {

@@ -131,6 +131,68 @@ export async function generatePayslipForContractor(
 }
 
 /**
+ * Regenerate an existing payslip — recalculates all amounts from current
+ * leave/overtime data and exchange rates, preserving payment status.
+ */
+export async function regeneratePayslip(payslipId: string): Promise<{ id: string; netAmount: number; netAmountAud: number } | null> {
+  const existing = await prisma.payslip.findUnique({ where: { id: payslipId } });
+  if (!existing) return null;
+
+  const { contractorId, periodMonth, periodYear } = existing;
+
+  const contractor = await prisma.contractor.findUnique({
+    where: { id: contractorId },
+    include: {
+      user: true,
+      leaveRequests: {
+        where: { status: 'approved' },
+        select: { leaveDate: true, status: true },
+      },
+      overtimeRequests: {
+        where: { status: 'approved' },
+        select: { overtimeDate: true, hours: true, status: true },
+      },
+    },
+  });
+
+  if (!contractor) return null;
+
+  const workingDays = getPayslipWorkingDays(periodMonth, periodYear, contractor.startDate);
+  const leaveDays = getApprovedLeaveDays(contractor.leaveRequests, periodMonth, periodYear);
+  const billableDays = Math.max(0, workingDays - leaveDays);
+  const dailyRateSnap = contractor.dailyRate;
+  const grossAmount = workingDays * dailyRateSnap;
+  const deductions = leaveDays * dailyRateSnap;
+  const overtimeHours = getApprovedOvertimeHours(contractor.overtimeRequests, periodMonth, periodYear);
+  const overtimeAmount = overtimeHours * (dailyRateSnap / HOURS_PER_DAY);
+  const netAmount = (billableDays * dailyRateSnap) + overtimeAmount;
+  const currency = contractor.currency ?? 'AUD';
+  const currencySnapRate = await getExchangeRate(currency);
+  const netAmountAud = netAmount * currencySnapRate;
+
+  const updated = await prisma.payslip.update({
+    where: { id: payslipId },
+    data: {
+      workingDays,
+      leaveDays,
+      billableDays,
+      dailyRateSnap,
+      grossAmount,
+      deductions,
+      overtimeHours,
+      overtimeAmount,
+      netAmount,
+      currency,
+      currencySnapRate,
+      netAmountAud,
+      // paymentStatus / paidAt / paidAmount preserved (not touched)
+    },
+  });
+
+  return { id: updated.id, netAmount: updated.netAmount, netAmountAud: updated.netAmountAud };
+}
+
+/**
  * Generate payslips for ALL active contractors for the current month.
  * Called automatically on admin login on/after the 25th.
  * Completely idempotent.

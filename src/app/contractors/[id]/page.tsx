@@ -57,6 +57,10 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
   const [genLoading, setGenLoading] = useState(false);
   const [genMessage, setGenMessage] = useState('');
 
+  // Payslip regeneration (per-row)
+  const [regenLoadingId, setRegenLoadingId] = useState<string | null>(null);
+  const [regenMessage, setRegenMessage] = useState<{ id: string; msg: string } | null>(null);
+
   function startEditing() {
     if (!contractor) return;
     setEditForm({
@@ -118,6 +122,24 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
     setGenMessage(body.message ?? (body.generated > 0 ? `Payslip generated` : 'Already generated this month'));
     setGenLoading(false);
     mutate();
+  }
+
+  async function handleRegeneratePayslip(payslip: Payslip) {
+    setRegenLoadingId(payslip.id);
+    setRegenMessage(null);
+    try {
+      const res = await fetch(`/api/contractors/${id}/payslips/${payslip.id}`, { method: 'POST' });
+      const body = await res.json();
+      if (!res.ok) {
+        setRegenMessage({ id: payslip.id, msg: body.error ?? 'Failed' });
+      } else {
+        setRegenMessage({ id: payslip.id, msg: 'Recalculated ✓' });
+        mutate();
+        setTimeout(() => setRegenMessage(null), 3000);
+      }
+    } finally {
+      setRegenLoadingId(null);
+    }
   }
 
   async function handleLeaveStatusChange(leave: LeaveRequest, status: 'approved' | 'denied') {
@@ -343,10 +365,24 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
                       : <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-950 text-amber-400">Unpaid</span>}
                   </td>
                   <td className="px-4 py-3.5">
-                    <button onClick={() => handlePaymentToggle(p)}
-                      className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700 transition-colors">
-                      {p.paymentStatus === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
-                    </button>
+                    <div className="flex items-center gap-1 justify-end">
+                      {regenMessage?.id === p.id && (
+                        <span className="text-xs text-emerald-400">{regenMessage.msg}</span>
+                      )}
+                      <button
+                        onClick={() => handleRegeneratePayslip(p)}
+                        disabled={regenLoadingId === p.id}
+                        title="Recalculate payslip amounts"
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-300 px-2 py-1 rounded hover:bg-gray-700 transition-colors disabled:opacity-40"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${regenLoadingId === p.id ? 'animate-spin' : ''}`} />
+                        Recalc
+                      </button>
+                      <button onClick={() => handlePaymentToggle(p)}
+                        className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700 transition-colors">
+                        {p.paymentStatus === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
