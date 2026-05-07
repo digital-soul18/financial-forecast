@@ -19,6 +19,7 @@ import {
   Banknote,
   Presentation,
   Handshake,
+  FileText,
 } from 'lucide-react';
 
 const nav = [
@@ -32,6 +33,7 @@ const nav = [
   { href: '/clients', label: 'Clients & Pipeline', icon: Handshake },
   { href: '/contractors', label: 'Contractors', icon: Users },
   { href: '/proceeds', label: 'Use of Proceeds', icon: Banknote },
+  { href: '/business-plan', label: 'Business Plan', icon: FileText },
   { href: '/pitch-deck', label: 'Pitch Deck', icon: Presentation },
   { href: '/reports/rd', label: 'R&D Report', icon: FlaskConical },
   { href: '/settings', label: 'Settings', icon: Settings },
