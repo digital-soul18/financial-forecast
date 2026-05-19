@@ -6,7 +6,7 @@ import { Eye, EyeOff } from 'lucide-react';
 // ── Types ────────────────────────────────────────────────────────────────────
 type Tag = 'yes' | 'no' | 'partial' | 'na';
 interface Cell { tag: Tag; text: string }
-interface DataRow { label: string; cells: [Cell, Cell, Cell, Cell, Cell, Cell] }
+interface DataRow { label: string; cells: [Cell, Cell, Cell, Cell, Cell, Cell, Cell, Cell] }
 interface SectionRow { section: true; label: string }
 type TableRow = SectionRow | DataRow;
 
@@ -17,49 +17,49 @@ const p  = (t: string): Cell => ({ tag: 'partial', text: t });
 const na = (t: string): Cell => ({ tag: 'na',      text: t });
 const s  = (label: string): SectionRow => ({ section: true, label });
 
-// Columns: [VAS, Voxworks, VOXY, AiDial, Sophiie(dim), Johnni(dim)]
+// Columns: [VAS, Voxworks, VOXY, AiDial, Lyngo, Cliniq Apps, Sophiie(dim), Johnni(dim)]
 const tableRows: TableRow[] = [
   s('Infrastructure'),
   { label: 'Runs on AU infrastructure',
-    cells: [y('✓ Yes — AU servers'), y('✓ Sydney hosted'), y('✓ Licensed AU carrier'), y('✓ Syd / Melb / Canb'), n('✗ No — standard plans offshore'), n('✗ Not confirmed')] },
+    cells: [y('✓ Yes — AU servers'), y('✓ Sydney hosted'), y('✓ Licensed AU carrier'), y('✓ Syd / Melb / Canb'), y('✓ AU data hosting'), y('✓ AU facilities'), n('✗ No — standard plans offshore'), n('✗ Not confirmed')] },
   { label: 'Data never leaves Australia',
-    cells: [y('✓ Yes'), y('✓ Yes'), y('✓ Carrier obligation'), y('✓ Explicit guarantee'), n('✗ Not standard plans'), n('✗ Not confirmed')] },
+    cells: [y('✓ Yes'), y('✓ Yes'), y('✓ Carrier obligation'), y('✓ Explicit guarantee'), p('~ Stated, no explicit guarantee'), p('~ Implied, not guaranteed'), n('✗ Not standard plans'), n('✗ Not confirmed')] },
 
   s('Legal & regulatory compliance'),
   { label: 'Privacy Act 1988 / APPs',
-    cells: [y('✓ Yes'), y('✓ Yes'), y('✓ Yes (regulated telco)'), y('✓ Yes (explicit)'), n('✗ Not on standard plans'), n('✗ Not confirmed')] },
+    cells: [y('✓ Yes'), y('✓ Yes'), y('✓ Yes (regulated telco)'), y('✓ Yes (explicit)'), y('✓ Yes (APP badge)'), y('✓ Yes (explicit)'), n('✗ Not on standard plans'), n('✗ Not confirmed')] },
   { label: 'Health Records Act',
-    cells: [y('✓ Yes'), p('~ Not explicitly stated'), p('~ Not explicitly stated'), y('✓ Yes — compliance add-on'), n('✗ Not on standard plans'), n('✗ Not confirmed')] },
+    cells: [y('✓ Yes'), p('~ Not explicitly stated'), p('~ Not explicitly stated'), y('✓ Yes — compliance add-on'), n('✗ Not stated'), p('~ Implied, not named'), n('✗ Not on standard plans'), n('✗ Not confirmed')] },
   { label: 'ACMA compliance',
-    cells: [y('✓ Yes'), y('✓ Yes'), y('✓ Yes (regulated RSP)'), y('✓ Yes'), na('Not stated'), na('Not stated')] },
+    cells: [y('✓ Yes'), y('✓ Yes'), y('✓ Yes (regulated RSP)'), y('✓ Yes'), na('Not stated'), na('Not stated'), na('Not stated'), na('Not stated')] },
   { label: 'PHI / PII data handling',
-    cells: [y('✓ Included in base plan'), p('~ Not stated explicitly'), p('~ Basic telco obligations'), p('~ A$100/mo compliance add-on'), n('✗ Not on standard plans'), n('✗ Not disclosed')] },
+    cells: [y('✓ Included in base plan'), p('~ Not stated explicitly'), p('~ Basic telco obligations'), p('~ A$100/mo compliance add-on'), y('✓ Included — E2E encryption'), y('✓ Included — AU encrypted'), n('✗ Not on standard plans'), n('✗ Not disclosed')] },
   { label: 'Audit logs / retention',
-    cells: [y('✓ Transcripts + recordings'), p('~ Recordings only'), p('~ Basic call logs'), y('✓ 7-yr retention (add-on)'), na('N/A — standard plans'), na('Not stated')] },
+    cells: [y('✓ Transcripts + recordings'), p('~ Recordings only'), p('~ Basic call logs'), y('✓ 7-yr retention (add-on)'), y('✓ Recordings + transcripts'), y('✓ Transcribed + logged'), na('N/A — standard plans'), na('Not stated')] },
 
   s('Medical-specific capabilities'),
   { label: 'Medical system integrations',
-    cells: [y('✓ Yes — included'), p('~ Not specifically stated'), n('✗ No'), p('~ PMS — custom quote add-on'), n('✗ None'), n('✗ None')] },
+    cells: [y('✓ Yes — included'), p('~ Not specifically stated'), n('✗ No'), p('~ PMS — custom quote add-on'), p('~ Allied-health PMS only'), p('~ Allied-health PMS only'), n('✗ None'), n('✗ None')] },
   { label: '24/7 inbound + overflow',
-    cells: [y('✓ Included'), y('✓ Yes'), y('✓ Yes'), y('✓ Yes'), na('N/A — standard plans'), na('N/A')] },
+    cells: [y('✓ Included'), y('✓ Yes'), y('✓ Yes'), y('✓ Yes'), y('✓ Included'), y('✓ Included'), na('N/A — standard plans'), na('N/A')] },
   { label: 'Live call transfer',
-    cells: [y('✓ Included'), y('✓ Yes'), y('✓ Yes'), y('✓ Warm + cold transfer'), na('N/A'), na('N/A')] },
+    cells: [y('✓ Included'), y('✓ Yes'), y('✓ Yes'), y('✓ Warm + cold transfer'), y('✓ Included'), y('✓ Included'), na('N/A'), na('N/A')] },
   { label: 'AI CRM / dashboard',
-    cells: [y('✓ Included — 1 user'), p('~ External integrations only'), p('~ Add-on (unpriced)'), p('~ Dashboard + integrations add-on'), na('N/A'), na('N/A')] },
+    cells: [y('✓ Included — 1 user'), p('~ External integrations only'), p('~ Add-on (unpriced)'), p('~ Dashboard + integrations add-on'), y('✓ Unlimited logins'), y('✓ Included — free'), na('N/A'), na('N/A')] },
   { label: 'Knowledge base (website)',
-    cells: [y('✓ Up to 50 pages'), na('Not stated'), na('Not stated'), y('✓ Docs + website'), na('N/A'), na('N/A')] },
+    cells: [y('✓ Up to 50 pages'), na('Not stated'), na('Not stated'), y('✓ Docs + website'), y('✓ Clinic FAQs (no cap)'), p('~ Implied (no cap)'), na('N/A'), na('N/A')] },
   { label: 'Training updates / month',
-    cells: [y('✓ 3 included'), na('Not stated'), na('Not stated'), p('~ 1 free, extra charged'), na('N/A'), na('N/A')] },
+    cells: [y('✓ 3 included'), na('Not stated'), na('Not stated'), p('~ 1 free, extra charged'), na('Managed service'), na('Not specified'), na('N/A'), na('N/A')] },
 
   s('Pricing & commercial terms'),
   { label: 'One-time setup fee',
-    cells: [y('A$599'), na('Not published'), p('A$499'), p('A$1,500 – A$3,000'), n('~A$50,000+ (AU enterprise)'), na('Not published')] },
+    cells: [y('A$599'), na('Not published'), p('A$499'), p('A$1,500 – A$3,000'), y('A$0 — free'), na('Not published'), n('~A$50,000+ (AU enterprise)'), na('Not published')] },
   { label: 'Effective per-min rate',
-    cells: [y('A$0.36 – 0.58/min'), y('A$0.33 – 0.50/min'), n('~A$1.67/min avg'), p('A$0.42 – 0.66/min'), na('N/A'), na('N/A')] },
+    cells: [y('A$0.36 – 0.58/min'), y('A$0.33 – 0.50/min'), n('~A$1.67/min avg'), p('A$0.42 – 0.66/min'), p('~A$0.59/min (per-call)'), na('Not published'), na('N/A'), na('N/A')] },
   { label: 'Lock-in contract',
-    cells: [na('Not stated'), na('Not stated'), n('12 months min (ETF)'), y('None — cancel anytime'), na('Enterprise terms'), na('Not stated')] },
+    cells: [na('Not stated'), na('Not stated'), n('12 months min (ETF)'), y('None — cancel anytime'), y('None — cancel anytime'), y('None published'), na('Enterprise terms'), na('Not stated')] },
   { label: 'Suitable for AU medical?',
-    cells: [y('✓ Yes'), p('Verify requirements'), p('Basic use only'), y('✓ Yes — with add-on'), n('✗ Not on standard plans'), n('✗ No')] },
+    cells: [y('✓ Yes'), p('Verify requirements'), p('Basic use only'), y('✓ Yes — with add-on'), p('Allied health only'), p('Allied health; GP unproven'), n('✗ Not on standard plans'), n('✗ No')] },
 ];
 
 // ── Badge component ───────────────────────────────────────────────────────────
@@ -158,12 +158,16 @@ interface BarItem {
 const barItems: BarItem[] = [
   { name: 'Voice AI Solutions', yourProduct: true, cpc: 'A$1.82 / call', pct: 37, monthly: 'A$999/mo', color: '#10b981',
     note: 'Setup A$599 (lowest) · Max plan · All medical compliance included in base price' },
+  { name: 'Lyngo (Scale)', cpc: 'A$1.76 / call', pct: 36, monthly: 'A$970/mo', color: '#06b6d4',
+    note: 'Setup A$0 · Scale plan 500 calls + 50 overage · Per-call (unlimited minutes) · Allied-health PMS only — no GP-side integrations' },
   { name: 'AiDial', cpc: 'A$1.87 / call', pct: 38, monthly: 'A$1,024/mo', color: '#7c6ef5',
     note: 'Setup A$3,000 · Compliance A$100/mo extra · Medical integrations on custom quote · A$3,000 setup adds A$250/mo in yr 1' },
   { name: 'Voxworks', cpc: 'A$3.64+ / call', pct: 74, monthly: 'A$2,000+/mo', color: '#3b82f6',
     note: 'Setup not published · No specific medical compliance add-on · Minimum A$24,000/yr at this volume' },
   { name: 'VOXY by Vocal', cpc: 'A$4.93 / call', pct: 100, monthly: 'A$2,709/mo', color: '#f59e0b',
     note: 'Flag fall + per-minute model becomes severely uneconomical at volume · A$32,500 annual cost' },
+  { name: 'Cliniq Apps', cpc: 'N/A', pct: 0, monthly: '', color: '', note: '',
+    na: 'AU-hosted, but voice / inbound pricing is not published — gated behind a quoted "communications plan". Legacy SaaS tiers (~A$29–A$149/mo) exclude the AI receptionist. Estimated A$400–A$700/mo range (unverified — contact sales).' },
   { name: 'Sophiie AI', cpc: 'N/A', pct: 0, monthly: '', color: '', dim: true, note: '',
     na: 'Standard plans use offshore infrastructure. AU-compliant enterprise plan estimated at ~A$50,000+ setup — not comparable at this scale.' },
   { name: 'Johnni AI', cpc: 'N/A', pct: 0, monthly: '', color: '', dim: true, note: '',
@@ -251,6 +255,16 @@ export default function MarketComparisonPage() {
                   AiDial
                   <span className="block text-[10px] text-gray-500 font-normal mt-0.5">aidial.com.au · Sunshine Coast</span>
                 </th>
+                {/* Lyngo */}
+                <th className="py-2.5 px-3 text-left text-gray-300 font-semibold">
+                  Lyngo AI
+                  <span className="block text-[10px] text-gray-500 font-normal mt-0.5">lyngo.ai · Sydney · allied health</span>
+                </th>
+                {/* Cliniq Apps */}
+                <th className="py-2.5 px-3 text-left text-gray-300 font-semibold">
+                  Cliniq Apps
+                  <span className="block text-[10px] text-gray-500 font-normal mt-0.5">cliniqapps.com · Melbourne</span>
+                </th>
                 {/* Sophiie — conditionally shown */}
                 {showDimmed && (
                   <th className="py-2.5 px-3 text-left text-gray-600 font-semibold opacity-60">
@@ -272,7 +286,7 @@ export default function MarketComparisonPage() {
                 if ('section' in row) {
                   return (
                     <tr key={ri} className="bg-gray-800">
-                      <td colSpan={showDimmed ? 7 : 5} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                      <td colSpan={showDimmed ? 9 : 7} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                         {row.label}
                       </td>
                     </tr>
@@ -299,16 +313,24 @@ export default function MarketComparisonPage() {
                     <td className="py-2 px-3 border-b border-gray-800/50">
                       <Badge tag={row.cells[3].tag} text={row.cells[3].text} />
                     </td>
+                    {/* Lyngo */}
+                    <td className="py-2 px-3 border-b border-gray-800/50">
+                      <Badge tag={row.cells[4].tag} text={row.cells[4].text} />
+                    </td>
+                    {/* Cliniq Apps */}
+                    <td className="py-2 px-3 border-b border-gray-800/50">
+                      <Badge tag={row.cells[5].tag} text={row.cells[5].text} />
+                    </td>
                     {/* Sophiie */}
                     {showDimmed && (
                       <td className="py-2 px-3 border-b border-gray-800/50 opacity-40">
-                        <Badge tag={row.cells[4].tag} text={row.cells[4].text} />
+                        <Badge tag={row.cells[6].tag} text={row.cells[6].text} />
                       </td>
                     )}
                     {/* Johnni */}
                     {showDimmed && (
                       <td className="py-2 px-3 border-b border-gray-800/50 opacity-40">
-                        <Badge tag={row.cells[5].tag} text={row.cells[5].text} />
+                        <Badge tag={row.cells[7].tag} text={row.cells[7].text} />
                       </td>
                     )}
                   </tr>
@@ -328,6 +350,8 @@ export default function MarketComparisonPage() {
 
         <div className="p-3.5 bg-gray-900 border-l-2 border-emerald-500 rounded-r-lg mb-5 text-xs text-gray-400 leading-relaxed">
           All figures on a Year 1 basis: monthly running costs plus the one-time setup fee divided across 12 months.
+          Lyngo bills per call (unlimited minutes) rather than per minute, so its cost is driven by call volume, not duration.
+          Cliniq Apps is AU-hosted but its inbound-voice pricing is not publicly disclosed (gated behind a sales quote).
           Sophiie AI and Johnni AI are excluded from cost analysis — their standard plans do not run on Australian infrastructure
           and are therefore not viable for medical use without enterprise arrangements.
         </div>
@@ -345,6 +369,17 @@ export default function MarketComparisonPage() {
             total="A$999.42"
           />
           <CostCard
+            provider="Lyngo (Scale)" hosting="au" cpc="A$970" sub="per month · year 1"
+            lines={[
+              { label: 'Scale plan (500 calls)',         value: 'A$880.00' },
+              { label: 'Overage 50 calls × $1.80',      value: 'A$90.00' },
+              { label: 'Compliance (APP)',               value: 'Included', accent: 'text-emerald-400' },
+              { label: 'Medical integrations',           value: 'Allied-health only', accent: 'text-amber-400' },
+              { label: 'Setup fee',                      value: 'A$0.00', accent: 'text-emerald-400' },
+            ]}
+            total="A$970.00"
+          />
+          <CostCard
             provider="AiDial" hosting="au" cpc="A$1,025" sub="per month · year 1"
             lines={[
               { label: 'Max plan (1,200 min)',           value: 'A$499.00' },
@@ -354,6 +389,10 @@ export default function MarketComparisonPage() {
               { label: 'Setup A$3,000 ÷ 12',            value: 'A$250.00' },
             ]}
             total="A$1,024.50"
+          />
+          <CostCard
+            provider="Cliniq Apps" hosting="au" cpc="N/A" sub="Voice pricing not published"
+            naNote="Inbound voice is gated behind a quoted 'communications plan'. Legacy SaaS tiers (~A$29–A$149/mo) exclude the AI receptionist. Estimated A$400–A$700/mo (unverified) — flag: contact sales."
           />
           <CostCard
             provider="Voxworks" hosting="au" cpc="A$2,000+" sub="per month · yr 1 (setup unknown)"
@@ -486,7 +525,7 @@ export default function MarketComparisonPage() {
           <div className="bg-emerald-950/30 border border-emerald-600 rounded-xl p-5">
             <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-1">Voice AI Solutions</div>
             <div className="text-sm font-semibold text-white mb-4 pb-3 border-b border-emerald-800/50">
-              "Jess" AI Receptionist — annual cost
+&ldquo;Jess&rdquo; AI Receptionist — annual cost
             </div>
             {[
               { l: 'Max plan subscription',             v: 'A$6,948' },
@@ -544,9 +583,12 @@ export default function MarketComparisonPage() {
         </p>
         <p className="text-[11px] text-gray-600 leading-relaxed">
           <strong className="text-gray-500">Pricing sources:</strong>{' '}
-          All competitor pricing from publicly available pricing pages (April 2026). Voxworks setup fee not published — shown as unknown.
+          All competitor pricing from publicly available pricing pages (April–May 2026). Voxworks setup fee not published — shown as unknown.
+          Lyngo pricing from lyngo.ai/pricing (Scale tier A$880/mo, 500 calls, A$1.80/call overage, A$0 setup, no lock-in) — call-based model, allied-health PMS only (Cliniko/Nookal/PracSuite), no SOC 2 / ISO 27001.
+          Cliniq Apps (Exiron (Aust) Pty Ltd, Melbourne) is AU-hosted and Privacy Act 1988 compliant, but voice / AI-receptionist pricing is not published — legacy SaaS tiers are stale and exclude the voice module.
           Sophiie AI standard plan infrastructure confirmed as non-AU via company representatives; AU enterprise pricing estimated at ~A$50,000+ setup.
           Johnni AI infrastructure location not publicly disclosed.
+          Heidi Health Comms is treated as adjacent (clinical-scribe-first, enterprise-quoted, no self-serve pricing) and is excluded from this direct comparison.
         </p>
         <p className="text-[11px] text-gray-600 leading-relaxed">
           <strong className="text-gray-500">Human staff costs:</strong>{' '}
