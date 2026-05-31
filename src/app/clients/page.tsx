@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
   CheckCircle2, Clock, TrendingUp, DollarSign, Users,
   Phone, Building2, ChevronDown, ChevronRight, Zap,
-  ArrowRight, Star, AlertCircle,
+  ArrowRight, Star, AlertCircle, FileDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +23,8 @@ interface SignedClient {
   ratePerCall?: number;
   callsPerMonth: number;
   color: string;
+  /** Slug for /api/contracts/[slug]. When set, a Download contract link is shown. */
+  contractSlug?: string;
 }
 
 interface PipelineClient {
@@ -123,6 +125,57 @@ const signedClients: SignedClient[] = [
       { label: 'Calls / month',    value: '3,000' },
       { label: 'Rate',             value: '$0.30 / call' },
       { label: 'MRR',              value: '$900.00' },
+    ],
+  },
+  {
+    // AI Services Agreement signed. Travel-agent voice AI ("Tina") for Smart Bunks.
+    // Setup: $2,000 deposit + $3,000 after 90 days = $5,000 total (excl GST).
+    // MRR shown is the committed platform floor; usage above 400 included minutes
+    // is billed at $0.45/min inbound and grows the actual MRR. Call volume not yet
+    // confirmed — calculation below reflects the contracted minimum.
+    name: 'TINA Corporation (Daiman)',
+    vertical: 'Travel & Tourism',
+    verticalColor: '#0ea5e9',
+    mrr: 179,
+    ratePerMin: 0.45,
+    callsPerMonth: 0,
+    color: '#0ea5e9',
+    notes: 'Voice AI travel agent "Tina" for Smart Bunks. Platform fee floor; actual MRR scales with usage above 400 included minutes.',
+    contractSlug: 'tina-corporation',
+    calculation: [
+      { label: 'Setup fee',              value: '$5,000 ($2k deposit + $3k after 90 days)' },
+      { label: 'Platform fee',           value: '$179 / month (includes 400 min)' },
+      { label: 'Inbound / outbound',     value: '$0.45 / min' },
+      { label: 'Call transfer',          value: '$0.05 / min' },
+      { label: 'SMS',                    value: '$0.12 / message' },
+      { label: 'Change requests',        value: '$160 / hour (excl GST)' },
+      { label: 'Committed MRR floor',    value: '$179.00' },
+    ],
+  },
+  {
+    // AI Services Agreement signed. AI receptionist ("Jess") for ISP support flows,
+    // integrated with Splynx for customer lookup + ticket creation.
+    // Setup: $1,000 deposit + 5 × $1,000 instalments = $6,000 total (excl GST).
+    // MRR shown is the committed platform floor; usage above 400 included minutes
+    // is billed at $0.45/min and grows the actual MRR.
+    name: 'Infinite Broadband',
+    vertical: 'Telco / ISP',
+    verticalColor: '#a855f7',
+    mrr: 179,
+    ratePerMin: 0.45,
+    callsPerMonth: 0,
+    color: '#a855f7',
+    notes: 'AI receptionist "Jess" with Splynx API integration (customer lookup, ticket creation). Platform fee floor; actual MRR scales with usage.',
+    contractSlug: 'infinite-broadband',
+    calculation: [
+      { label: 'Setup fee',              value: '$6,000 ($1k deposit + 5 × $1k monthly)' },
+      { label: 'Platform fee',           value: '$179 / month (includes 400 min)' },
+      { label: 'Inbound / outbound',     value: '$0.45 / min' },
+      { label: 'Call transfer',          value: '$0.05 / min' },
+      { label: 'SMS',                    value: '$0.12 / message' },
+      { label: 'Splynx API calls',       value: 'Included in subscription' },
+      { label: 'Change requests',        value: '$160 / hour (excl GST)' },
+      { label: 'Committed MRR floor',    value: '$179.00' },
     ],
   },
 ];
@@ -411,6 +464,20 @@ export default function ClientsPage() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Signed contract download — shown only when a slug is attached */}
+                    {client.contractSlug && (
+                      <div className="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between gap-3">
+                        <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Signed agreement</p>
+                        <a
+                          href={`/api/contracts/${client.contractSlug}`}
+                          className="inline-flex items-center gap-1.5 text-xs text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-600 px-3 py-1.5 rounded-md transition-colors"
+                        >
+                          <FileDown className="w-3.5 h-3.5" />
+                          Download contract (PDF)
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

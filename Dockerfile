@@ -20,8 +20,12 @@ ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
 
 # Copy static assets into the standalone bundle location expected by server.js
+# private-assets/ is included so authenticated routes like /api/contracts/[slug]
+# can stream signed PDFs from disk at runtime (the standalone tracer doesn't
+# pick up files referenced by runtime-only paths).
 RUN cp -r .next/static .next/standalone/.next/static && \
-    cp -r public .next/standalone/public
+    cp -r public .next/standalone/public && \
+    cp -r private-assets .next/standalone/private-assets
 
 # PORT is injected by Railway at runtime
 # Resolve any previously-failed migration, then apply all pending migrations, then start
