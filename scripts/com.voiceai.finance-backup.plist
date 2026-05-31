@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.voiceai.finance-backup.plist
+  Runs scripts/finance-backup.sh every Monday at 06:00 local time.
+
+  Install:  cp this file to ~/Library/LaunchAgents/  then
+            launchctl load -w ~/Library/LaunchAgents/com.voiceai.finance-backup.plist
+
+  scripts/install-backup-cron.sh does both steps for you.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.voiceai.finance-backup</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__SCRIPT_PATH__</string>
+    </array>
+
+    <!-- Weekday 1 = Monday, Hour 6, Minute 0. launchd will catch up if the Mac
+         was asleep at fire time, so missed Mondays still run when next awake. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- Log launchd's own stdout/stderr separately from the script's own log.
+         These files are inside ~/Library/Logs so they're easy to find. -->
+    <key>StandardOutPath</key>
+    <string>__HOME__/Library/Logs/finance-backup.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__HOME__/Library/Logs/finance-backup.err.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

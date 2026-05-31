@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, Users, Shield, UserCheck, UserX, ExternalLink, Send, RotateCcw, UserPlus, X, Globe, Bell } from 'lucide-react';
+import { Trash2, Users, Shield, UserCheck, UserX, ExternalLink, Send, RotateCcw, UserPlus, X, Globe, Bell, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SUPPORTED_CURRENCIES } from '@/lib/contractors/currencies';
 
@@ -218,6 +218,31 @@ export default function SettingsPage() {
   return (
     <div className="p-4 sm:p-6 space-y-8">
       <h1 className="text-xl font-semibold text-gray-100">Settings</h1>
+
+      {/* ── Database backup ─────────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-200">Database backup</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Download a point-in-time snapshot of the production database. Uses SQLite&rsquo;s online-backup API — safe even while the app is in use. Automated weekly backups run via a local cron (see <code className="text-gray-400">BACKUP.md</code>).
+          </p>
+        </div>
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="p-4 flex items-center justify-between gap-3">
+            <div className="text-xs text-gray-400">
+              Saves as <code className="text-gray-300">finance-YYYY-MM-DD.db</code>. Restore by replacing the live DB file with this snapshot.
+            </div>
+            <a
+              href="/api/admin/backup"
+              download
+              className="flex items-center gap-2 bg-violet-700 hover:bg-violet-600 text-white text-xs px-3 py-1.5 h-auto rounded-md transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download backup
+            </a>
+          </CardContent>
+        </Card>
+      </section>
 
       {/* ── User Management ─────────────────────────────────────────────────── */}
       <section className="space-y-4">

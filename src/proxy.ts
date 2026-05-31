@@ -16,6 +16,10 @@ const PUBLIC_PREFIXES = [
   '/api/auth/send-otp',
   '/api/auth/verify-otp',
   '/api/auth/logout',
+  // Backup endpoint does its OWN dual auth (Bearer token for cron, admin cookie
+  // for UI button). Bypassing the proxy here so the cron can hit it without a
+  // session cookie. See: src/app/api/admin/backup/route.ts.
+  '/api/admin/backup',
 ];
 
 // Patterns for HMAC-protected action links (no cookie needed)
