@@ -19,6 +19,10 @@ const CONTRACTS: Record<string, { file: string; downloadName: string }> = {
     file: 'infinite-broadband.pdf',
     downloadName: 'AI Services Agreement - Infinite Broadband.pdf',
   },
+  'chemo-at-home': {
+    file: 'chemo-at-home.pdf',
+    downloadName: 'AI Services Agreement - Chemo@Home.pdf',
+  },
 };
 
 export async function GET(

@@ -178,6 +178,35 @@ const signedClients: SignedClient[] = [
       { label: 'Committed MRR floor',    value: '$179.00' },
     ],
   },
+  {
+    // AI Services Agreement signed. Voice agent "PIA" for Chemo@Home (View Health
+    // Pty Ltd) — in-home oncology nursing service. AI handles inbound triage
+    // across multiple intent categories and routes to the right state team.
+    // Setup: $2,000 (50% deposit on sign-off, 50% on go-live).
+    // Platform $200/mo with 200 included minutes — REVIEWED at month 2 once real
+    // call volume is confirmed, with volume discounts available.
+    // MRR shown is the committed floor; usage above 200 included minutes scales
+    // it at $0.45/min.
+    name: 'Chemo@Home',
+    vertical: 'Healthcare',
+    verticalColor: '#14b8a6',
+    mrr: 200,
+    ratePerMin: 0.45,
+    callsPerMonth: 0,
+    color: '#14b8a6',
+    notes: 'Voice agent "PIA" for View Health (Chemo@Home). Front-door triage across 5 intent categories. Platform fee + included minutes reviewed at month 2 with volume discounts available.',
+    contractSlug: 'chemo-at-home',
+    calculation: [
+      { label: 'Setup fee',              value: '$2,000 (50% on sign-off, 50% on go-live)' },
+      { label: 'Platform fee',           value: '$200 / month (includes 200 min)' },
+      { label: 'Inbound minutes',        value: '$0.45 / min (overage)' },
+      { label: 'SMS',                    value: '$0.12 / message (disabled this phase)' },
+      { label: 'Change requests',        value: '$160 / hour (excl GST)' },
+      { label: 'Additional training',    value: '$160 / hour (excl GST)' },
+      { label: 'Month-2 review',         value: 'Volume discounts available' },
+      { label: 'Committed MRR floor',    value: '$200.00' },
+    ],
+  },
 ];
 
 const pipelineClients: PipelineClient[] = [
