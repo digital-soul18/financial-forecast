@@ -207,6 +207,32 @@ const signedClients: SignedClient[] = [
       { label: 'Committed MRR floor',    value: '$200.00' },
     ],
   },
+  {
+    // AI Services Agreement signed. Voice agent "Jess" for 21 Overlays — paint
+    // protection / automotive aftermarket. Handles inbound product enquiries and
+    // qualifies leads for manual quoting by the 21 Overlays team.
+    // Setup: $2,000 ($1k deposit on signing + $1k when agent goes live).
+    // Smallest platform fee in the cohort: $100/mo with 222 included minutes.
+    // MRR shown is the committed floor; usage above 222 min scales at $0.45/min.
+    name: '21 Overlays',
+    vertical: 'Automotive Aftermarket',
+    verticalColor: '#eab308',
+    mrr: 100,
+    ratePerMin: 0.45,
+    callsPerMonth: 0,
+    color: '#eab308',
+    notes: 'Voice agent "Jess" for paint-protection enquiries. Inbound product Q&A + lead qualification handed off for human quoting. Lowest platform fee in the cohort.',
+    contractSlug: '21-overlays',
+    calculation: [
+      { label: 'Setup fee',              value: '$2,000 ($1k on signing + $1k on go-live)' },
+      { label: 'Platform fee',           value: '$100 / month (includes 222 min)' },
+      { label: 'Inbound / outbound',     value: '$0.45 / min' },
+      { label: 'Call transfer',          value: '$0.05 / min' },
+      { label: 'SMS',                    value: '$0.12 / message' },
+      { label: 'Change requests',        value: '$160 / hour (excl GST)' },
+      { label: 'Committed MRR floor',    value: '$100.00' },
+    ],
+  },
 ];
 
 const pipelineClients: PipelineClient[] = [
