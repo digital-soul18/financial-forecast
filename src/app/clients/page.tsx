@@ -113,21 +113,6 @@ const signedClients: SignedClient[] = [
     ],
   },
   {
-    name: 'Sales Inc',
-    vertical: 'Sales & Outreach',
-    verticalColor: '#f97316',
-    mrr: 900,
-    ratePerCall: 0.30,
-    callsPerMonth: 3000,
-    color: '#f97316',
-    notes: 'Flat per-call pricing. 3,000 calls/month at $0.30 per call.',
-    calculation: [
-      { label: 'Calls / month',    value: '3,000' },
-      { label: 'Rate',             value: '$0.30 / call' },
-      { label: 'MRR',              value: '$900.00' },
-    ],
-  },
-  {
     // AI Services Agreement signed. Travel-agent voice AI ("Tina") for Smart Bunks.
     // Setup: $2,000 deposit + $3,000 after 90 days = $5,000 total (excl GST).
     // MRR shown is the committed platform floor; usage above 400 included minutes
@@ -257,6 +242,18 @@ const pipelineClients: PipelineClient[] = [
     setupFee: { min: 80000, max: 100000 },
     color: '#f59e0b',
     notes: 'Debt collection & credit management workflows. Significant one-time setup fee in addition to recurring ARR.',
+  },
+  {
+    // Moved from signedClients on the user's instruction. Flat per-call pricing
+    // model: 3,000 calls/month × $0.30 per call = $900/mo MRR estimate.
+    name: 'Sales Inc',
+    vertical: 'Sales & Outreach',
+    verticalColor: '#f97316',
+    stage: 'Proposal Sent',
+    estimatedMRR: 900,
+    estimatedARR: 900 * 12,
+    color: '#f97316',
+    notes: 'Flat per-call pricing model: 3,000 calls/month × $0.30 per call → $900/mo MRR estimate.',
   },
   {
     name: 'CollectAU',
