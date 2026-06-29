@@ -7,6 +7,8 @@ import {
   LogOut, Calendar, FileText, Clock, CheckCircle2, XCircle, AlertCircle, Zap,
 } from 'lucide-react';
 import type { ContractorWithDetails, LeaveRequest, OvertimeRequest, Payslip } from '@/types/contractor';
+import LeaveBalanceCard from '@/components/contractor/LeaveBalanceCard';
+import { LeaveTypeBadge } from '@/components/contractor/LeaveTypeBadge';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -276,6 +278,7 @@ export default function ContractorPortal() {
         {/* ── Leave tab ── */}
         {tab === 'leave' && (
           <div className="space-y-4">
+            <LeaveBalanceCard contractorId={contractor.id} readOnly />
             {leaveSuccess && (
               <div className="bg-emerald-950 border border-emerald-800 text-emerald-300 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />{leaveSuccess}
@@ -334,7 +337,10 @@ export default function ContractorPortal() {
                           <p className="text-white text-sm font-medium">{format(new Date(lr.leaveDate), 'EEE, d MMM yyyy')}</p>
                           <StatusBadge status={lr.status} />
                         </div>
-                        <p className="text-gray-300 text-sm">{lr.reason}</p>
+                        <div className="flex items-center gap-2">
+                          <LeaveTypeBadge type={lr.leaveType} days={lr.days} />
+                          <p className="text-gray-300 text-sm">{lr.reason}</p>
+                        </div>
                         {lr.adminNote && <p className="text-gray-500 text-xs italic">{lr.adminNote}</p>}
                       </div>
                     ))}
@@ -345,6 +351,7 @@ export default function ContractorPortal() {
                       <thead>
                         <tr className="border-b border-gray-800">
                           <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Date</th>
+                          <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Type</th>
                           <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Reason</th>
                           <th className="text-center px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Status</th>
                           <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Note</th>
@@ -354,6 +361,7 @@ export default function ContractorPortal() {
                         {leaveRequests.map((lr) => (
                           <tr key={lr.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition-colors">
                             <td className="px-5 py-3.5 text-sm text-white font-medium">{format(new Date(lr.leaveDate), 'EEE, d MMM yyyy')}</td>
+                            <td className="px-4 py-3.5"><LeaveTypeBadge type={lr.leaveType} days={lr.days} /></td>
                             <td className="px-4 py-3.5 text-sm text-gray-300">{lr.reason}</td>
                             <td className="px-4 py-3.5 text-center"><StatusBadge status={lr.status} /></td>
                             <td className="px-4 py-3.5 text-sm text-gray-500 italic">{lr.adminNote ?? '—'}</td>

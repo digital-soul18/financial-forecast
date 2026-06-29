@@ -9,6 +9,8 @@ import {
   CheckCircle2, XCircle, AlertCircle, CircleDot, CircleOff, Zap,
 } from 'lucide-react';
 import type { ContractorWithDetails, LeaveRequest, OvertimeRequest, Payslip } from '@/types/contractor';
+import LeaveBalanceCard from '@/components/contractor/LeaveBalanceCard';
+import { LeaveTypeBadge } from '@/components/contractor/LeaveTypeBadge';
 import { SUPPORTED_CURRENCIES } from '@/lib/contractors/currencies';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -38,7 +40,10 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
 
   // Edit info state
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', dailyRate: '', startDate: '', currency: 'AUD' });
+  const [editForm, setEditForm] = useState({
+    name: '', dailyRate: '', startDate: '', currency: 'AUD',
+    probationMonths: '6', country: 'PH', accrualUsableDuringProbation: false,
+  });
   const [editLoading, setEditLoading] = useState(false);
 
   // Leave form
@@ -68,6 +73,9 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
       dailyRate: String(contractor.dailyRate),
       startDate: contractor.startDate.split('T')[0],
       currency: contractor.currency ?? 'AUD',
+      probationMonths: String(contractor.probationMonths ?? 6),
+      country: contractor.country ?? 'PH',
+      accrualUsableDuringProbation: Boolean(contractor.accrualUsableDuringProbation),
     });
     setEditing(true);
   }
@@ -82,6 +90,9 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         dailyRate: Number(editForm.dailyRate),
         startDate: editForm.startDate,
         currency: editForm.currency,
+        probationMonths: Number(editForm.probationMonths),
+        country: editForm.country,
+        accrualUsableDuringProbation: editForm.accrualUsableDuringProbation,
       }),
     });
     setEditing(false);
@@ -212,6 +223,26 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
 
   const payslips: Payslip[] = contractor.payslips ?? [];
   const leaveRequests: LeaveRequest[] = contractor.leaveRequests ?? [];
+
+  // ── Payslip "what-if" simulator ────────────────────────────────────────
+  // For each payslip period, count approved-leave days whose new-logic type
+  // is paid (VL / SL / public holiday / mat/pat). The simulated net adds
+  // those days back to billable. Only the column is shown if there are any
+  // paid-leave days across the visible payslip set.
+  const PAID_LEAVE_TYPES = new Set(['VL', 'SL', 'PUBLIC_HOLIDAY', 'MATERNITY', 'PATERNITY']);
+  function paidLeaveDaysInPeriod(month: number, year: number): number {
+    let total = 0;
+    for (const lr of leaveRequests) {
+      if (lr.status !== 'approved') continue;
+      if (!lr.leaveType || !PAID_LEAVE_TYPES.has(lr.leaveType)) continue;
+      const d = new Date(lr.leaveDate);
+      if (d.getFullYear() === year && d.getMonth() + 1 === month) total += lr.days ?? 1;
+    }
+    return total;
+  }
+  const showSimulator = payslips.some(
+    (p) => paidLeaveDaysInPeriod(p.periodMonth, p.periodYear) > 0,
+  );
   const overtimeRequests: OvertimeRequest[] = contractor.overtimeRequests ?? [];
   const currency = contractor.currency ?? 'AUD';
   const showAud = currency !== 'AUD';
@@ -270,6 +301,33 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
               <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Start Date</label>
               <input type="date" value={editForm.startDate} onChange={(e) => setEditForm((p) => ({ ...p, startDate: e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            </div>
+            {/* ── Leave policy (drives src/lib/leave/ engine) ─────────────────── */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Country</label>
+              <select value={editForm.country} onChange={(e) => setEditForm((p) => ({ ...p, country: e.target.value }))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                <option value="PH">PH (Philippines)</option>
+                <option value="IN">IN (India)</option>
+                <option value="AU">AU (Australia)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide" title="Months from start date until regularisation. PH=6, IN=3 by contract default.">
+                Probation (months)
+              </label>
+              <input type="number" min="0" max="24" value={editForm.probationMonths}
+                onChange={(e) => setEditForm((p) => ({ ...p, probationMonths: e.target.value }))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            </div>
+            <div className="col-span-full flex items-center gap-2 -mt-1">
+              <input type="checkbox" id="accrualUsable" checked={editForm.accrualUsableDuringProbation}
+                onChange={(e) => setEditForm((p) => ({ ...p, accrualUsableDuringProbation: e.target.checked }))}
+                className="w-4 h-4 accent-violet-500" />
+              <label htmlFor="accrualUsable" className="text-xs text-gray-300">
+                Accrued VL/SL is usable during probation
+                <span className="text-gray-500 ml-2">(PH contract: off · IN contract: on)</span>
+              </label>
             </div>
             <div className="col-span-full flex gap-2 justify-end">
               <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 text-gray-400 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors">
@@ -332,6 +390,14 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
                 <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Leave</th>
                 <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">OT hrs</th>
                 <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Net ({currency})</th>
+                {showSimulator && (
+                  <th
+                    className="text-right px-4 py-3 text-xs text-amber-300 font-medium uppercase tracking-wide"
+                    title="What net pay WOULD be if VL/SL/public-holiday days didn't deduct. Does not change actual pay — for validation only."
+                  >
+                    What-if ({currency})
+                  </th>
+                )}
                 {showAud && <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Net (AUD)</th>}
                 <th className="text-center px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Payment</th>
                 <th className="px-4 py-3" />
@@ -351,6 +417,26 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
                     </span>
                   </td>
                   <td className="px-4 py-3.5 text-sm text-violet-300 font-semibold text-right">{currency} {fmt(p.netAmount)}</td>
+                  {showSimulator && (() => {
+                    const paidDays = paidLeaveDaysInPeriod(p.periodMonth, p.periodYear);
+                    const addBack = paidDays * p.dailyRateSnap;
+                    const simNet  = p.netAmount + addBack;
+                    return (
+                      <td
+                        className="px-4 py-3.5 text-sm text-right"
+                        title={`Adds ${paidDays} paid-leave day${paidDays === 1 ? '' : 's'} back to billable at ${currency} ${fmt(p.dailyRateSnap)}/day`}
+                      >
+                        {paidDays > 0 ? (
+                          <>
+                            <span className="text-amber-300 font-semibold">{currency} {fmt(simNet)}</span>
+                            <span className="block text-[10px] text-emerald-400">+{currency} {fmt(addBack)}</span>
+                          </>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
+                    );
+                  })()}
                   {showAud && (
                     <td className="px-4 py-3.5 text-sm text-gray-400 text-right">
                       AUD {fmt(p.netAmountAud ?? p.netAmount)}
@@ -391,6 +477,9 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
           </div>
         )}
       </div>
+
+      {/* ── Leave balance ── */}
+      <LeaveBalanceCard contractorId={contractor.id} />
 
       {/* ── Leave Requests ── */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
@@ -440,6 +529,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Date</th>
+                <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Type</th>
                 <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Reason</th>
                 <th className="text-center px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Status</th>
                 <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium uppercase tracking-wide">Admin Note</th>
@@ -450,6 +540,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
               {leaveRequests.map((lr) => (
                 <tr key={lr.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition-colors">
                   <td className="px-5 py-3.5 text-sm text-white font-medium">{format(new Date(lr.leaveDate), 'EEE, d MMM yyyy')}</td>
+                  <td className="px-4 py-3.5"><LeaveTypeBadge type={lr.leaveType} days={lr.days} /></td>
                   <td className="px-4 py-3.5 text-sm text-gray-300">{lr.reason}</td>
                   <td className="px-4 py-3.5 text-center"><StatusBadge status={lr.status} /></td>
                   <td className="px-4 py-3.5 text-sm text-gray-500 italic">{lr.adminNote ?? '—'}</td>

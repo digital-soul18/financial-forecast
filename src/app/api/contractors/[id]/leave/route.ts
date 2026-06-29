@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { classifyForCreate } from '@/lib/leave/createHelper';
 
 type Params = Promise<{ id: string }>;
 
 function serializeLeave(lr: {
   id: string; contractorId: string; leaveDate: Date; reason: string;
-  status: string; adminNote: string | null; createdAt: Date; updatedAt: Date;
+  status: string; adminNote: string | null;
+  leaveType: string | null; days: number; classificationNote: string | null;
+  createdAt: Date; updatedAt: Date;
 }) {
   return {
     ...lr,
@@ -37,14 +40,30 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
 export async function POST(req: NextRequest, { params }: { params: Params }) {
   try {
     const { id } = await params;
-    const { leaveDate, reason } = await req.json();
+    const { leaveDate, reason, leaveType, days } = await req.json();
 
     if (!leaveDate || !reason) {
       return NextResponse.json({ error: 'leaveDate and reason are required' }, { status: 400 });
     }
 
+    const leaveDateObj = new Date(leaveDate);
+    const classified = classifyForCreate({
+      leaveDate: leaveDateObj,
+      reason,
+      explicitType: leaveType ?? null,
+      days,
+    });
+
     const lr = await prisma.leaveRequest.create({
-      data: { contractorId: id, leaveDate: new Date(leaveDate), reason, status: 'approved' },
+      data: {
+        contractorId: id,
+        leaveDate: leaveDateObj,
+        reason,
+        status: 'approved',
+        leaveType: classified.leaveType,
+        days: classified.days,
+        classificationNote: classified.classificationNote,
+      },
     });
 
     return NextResponse.json({ leaveRequest: serializeLeave(lr) }, { status: 201 });

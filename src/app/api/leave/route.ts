@@ -5,11 +5,14 @@ import { leaveRequestEmailHtml } from '@/lib/email/templates';
 import { signLeaveToken } from '@/lib/auth/hmac';
 import { getApproverEmail } from '@/lib/contractors/approver';
 import { getAppUrl } from '@/lib/appUrl';
+import { classifyForCreate } from '@/lib/leave/createHelper';
 import { format } from 'date-fns';
 
 function serializeLeave(lr: {
   id: string; contractorId: string; leaveDate: Date; reason: string;
-  status: string; adminNote: string | null; createdAt: Date; updatedAt: Date;
+  status: string; adminNote: string | null;
+  leaveType: string | null; days: number; classificationNote: string | null;
+  createdAt: Date; updatedAt: Date;
 }) {
   return {
     ...lr,
@@ -29,7 +32,7 @@ export async function GET(req: NextRequest) {
     const contractorId = searchParams.get('contractorId');
     const status = searchParams.get('status');
 
-    let where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {};
 
     if (mine && userId) {
       const contractor = await prisma.contractor.findUnique({ where: { userId } });
@@ -67,13 +70,29 @@ export async function POST(req: NextRequest) {
     });
     if (!contractor) return NextResponse.json({ error: 'Contractor account not found' }, { status: 403 });
 
-    const { leaveDate, reason } = await req.json();
+    const { leaveDate, reason, leaveType, days } = await req.json();
     if (!leaveDate || !reason) {
       return NextResponse.json({ error: 'leaveDate and reason are required' }, { status: 400 });
     }
 
+    const leaveDateObj = new Date(leaveDate);
+    const classified = classifyForCreate({
+      leaveDate: leaveDateObj,
+      reason,
+      explicitType: leaveType ?? null,
+      days,
+    });
+
     const lr = await prisma.leaveRequest.create({
-      data: { contractorId: contractor.id, leaveDate: new Date(leaveDate), reason, status: 'pending' },
+      data: {
+        contractorId: contractor.id,
+        leaveDate: leaveDateObj,
+        reason,
+        status: 'pending',
+        leaveType: classified.leaveType,
+        days: classified.days,
+        classificationNote: classified.classificationNote,
+      },
     });
 
     // Notify approver via email with approve/deny links

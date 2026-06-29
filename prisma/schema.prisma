@@ -143,11 +143,25 @@ model Contractor {
   currency         String            @default("AUD")
   startDate        DateTime
   isActive         Boolean           @default(true)
+  // ── Leave tracking config (see src/lib/leave/) ──────────────────────────
+  /// Probation length in months. PH default 6, IN default 3.
+  probationMonths              Int     @default(6)
+  /// Country code for documentation. "PH" | "IN" | "AU" etc.
+  country                      String  @default("PH")
+  /// Whether accrued VL/SL can be drawn down during probation.
+  /// PH (Steph) = false (contract says usable upon regularisation).
+  /// IN (Taresh) = true (contract silent on this).
+  accrualUsableDuringProbation Boolean @default(false)
+  /// Days of VL accrued per completed month. Default 10/12 ≈ 0.83.
+  vlAccrualPerMonth            Float   @default(0.83)
+  /// Days of SL accrued per completed month. Default 5/12 ≈ 0.42.
+  slAccrualPerMonth            Float   @default(0.42)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   leaveRequests    LeaveRequest[]
   overtimeRequests OvertimeRequest[]
   payslips         Payslip[]
+  forfeitures      LeaveForfeiture[]
 }
 
 model LeaveRequest {
@@ -158,11 +172,36 @@ model LeaveRequest {
   reason       String
   status       String     @default("pending") // "pending" | "approved" | "denied"
   adminNote    String?
+  // ── Classification (added in 20260507_add_leave_tracking) ──────────────
+  /// VL | SL | MATERNITY | PATERNITY | PUBLIC_HOLIDAY | UNPAID
+  /// Nullable: legacy rows pre-migration get auto-classified at read time.
+  leaveType          String?
+  /// 1.0 typical, 0.5 for half-day.
+  days               Float    @default(1)
+  /// Explanation of the classification (from auto-classifier, or admin note).
+  classificationNote String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
   @@index([contractorId])
   @@index([status])
+}
+
+/// Anniversary forfeiture events for each contractor. Persisted so historic
+/// balance calcs are reproducible (we don't re-derive past forfeitures from
+/// scratch — they're audit-trail data).
+model LeaveForfeiture {
+  id              String     @id @default(cuid())
+  contractorId    String
+  contractor      Contractor @relation(fields: [contractorId], references: [id])
+  anniversaryDate DateTime
+  vlForfeited     Float      @default(0)
+  slForfeited     Float      @default(0)
+  note            String?
+  createdAt       DateTime   @default(now())
+
+  @@unique([contractorId, anniversaryDate])
+  @@index([contractorId])
 }
 
 model Payslip {

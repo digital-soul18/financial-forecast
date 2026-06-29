@@ -15,10 +15,19 @@ export interface ContractorRecord {
   currency: string;
   startDate: string;
   isActive: boolean;
+  // Leave policy (added 2026-05-07; see src/lib/leave/)
+  probationMonths: number;
+  country: string;
+  accrualUsableDuringProbation: boolean;
+  vlAccrualPerMonth: number;
+  slAccrualPerMonth: number;
   createdAt: string;
   updatedAt: string;
   user: ContractorUser;
 }
+
+export type LeaveTypeLabel =
+  | 'VL' | 'SL' | 'MATERNITY' | 'PATERNITY' | 'PUBLIC_HOLIDAY' | 'UNPAID';
 
 export interface LeaveRequest {
   id: string;
@@ -27,8 +36,23 @@ export interface LeaveRequest {
   reason: string;
   status: 'pending' | 'approved' | 'denied';
   adminNote: string | null;
+  // Classification + balance impact (added 2026-05-07)
+  leaveType: LeaveTypeLabel | null;
+  days: number;
+  classificationNote: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LeaveBalanceResponse {
+  asOf: string;
+  completedMonths: number;
+  monthsUntilNextAnniversary: number;
+  regularisationDate: string;
+  nextAnniversaryDate: string;
+  isLockedByProbation: boolean;
+  vl: { accrued: number; used: number; forfeited: number; available: number };
+  sl: { accrued: number; used: number; forfeited: number; available: number };
 }
 
 export interface OvertimeRequest {

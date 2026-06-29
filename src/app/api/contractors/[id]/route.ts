@@ -62,6 +62,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
       contractorUpdates.isActive = body.isActive;
       userUpdates.isActive = body.isActive;
     }
+    // Leave-policy fields (see src/lib/leave/)
+    if ('probationMonths' in body) contractorUpdates.probationMonths = Math.max(0, Number(body.probationMonths));
+    if ('country' in body) contractorUpdates.country = String(body.country).toUpperCase();
+    if ('accrualUsableDuringProbation' in body) {
+      contractorUpdates.accrualUsableDuringProbation = Boolean(body.accrualUsableDuringProbation);
+    }
+    if ('vlAccrualPerMonth' in body) contractorUpdates.vlAccrualPerMonth = Number(body.vlAccrualPerMonth);
+    if ('slAccrualPerMonth' in body) contractorUpdates.slAccrualPerMonth = Number(body.slAccrualPerMonth);
 
     const contractor = await prisma.$transaction(async (tx) => {
       const c = await tx.contractor.update({

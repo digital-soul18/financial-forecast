@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:leave": "npx tsx scripts/test-leave-engine.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
