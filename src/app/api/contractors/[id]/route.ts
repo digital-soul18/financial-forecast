@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { classifyLeave } from '@/lib/leave/classifier';
+import { auHolidayDateSet } from '@/lib/leave/server';
 
 type Params = Promise<{ id: string }>;
 
@@ -25,11 +27,26 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
     });
     if (!contractor) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+    // Auto-classify any legacy leave rows where leaveType is null. The engine
+    // does this on-the-fly for balance computation, but the FRONTEND reads the
+    // raw leaveType for the payslip what-if simulator. Fill it in here so the
+    // UI sees a usable type without us having to persist a one-off backfill.
+    const holidays = auHolidayDateSet();
+    const leaveRequestsInflated = contractor.leaveRequests.map((lr) => {
+      const inflated = { ...lr } as typeof lr & { classificationNote: string | null };
+      if (!lr.leaveType) {
+        const r = classifyLeave(lr.reason, lr.leaveDate, holidays);
+        inflated.leaveType = r.type;
+        if (!inflated.classificationNote) inflated.classificationNote = `${r.reason} (inferred)`;
+      }
+      return inflated;
+    });
+
     return NextResponse.json({
       contractor: {
         ...serializeDates(contractor as unknown as Record<string, unknown>),
         user: serializeDates(contractor.user as unknown as Record<string, unknown>),
-        leaveRequests: contractor.leaveRequests.map(lr =>
+        leaveRequests: leaveRequestsInflated.map(lr =>
           serializeDates(lr as unknown as Record<string, unknown>)
         ),
         overtimeRequests: contractor.overtimeRequests.map(ot =>
