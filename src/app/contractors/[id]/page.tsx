@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import type { ContractorWithDetails, LeaveRequest, OvertimeRequest, Payslip } from '@/types/contractor';
 import LeaveBalanceCard from '@/components/contractor/LeaveBalanceCard';
-import { LeaveTypeBadge } from '@/components/contractor/LeaveTypeBadge';
+import { LeaveTypeEditor } from '@/components/contractor/LeaveTypeEditor';
 import { SUPPORTED_CURRENCIES } from '@/lib/contractors/currencies';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -540,7 +540,14 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
               {leaveRequests.map((lr) => (
                 <tr key={lr.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition-colors">
                   <td className="px-5 py-3.5 text-sm text-white font-medium">{format(new Date(lr.leaveDate), 'EEE, d MMM yyyy')}</td>
-                  <td className="px-4 py-3.5"><LeaveTypeBadge type={lr.leaveType} days={lr.days} /></td>
+                  <td className="px-4 py-3.5">
+                    <LeaveTypeEditor
+                      leaveId={lr.id}
+                      currentType={lr.leaveType}
+                      days={lr.days}
+                      onChanged={() => mutate()}
+                    />
+                  </td>
                   <td className="px-4 py-3.5 text-sm text-gray-300">{lr.reason}</td>
                   <td className="px-4 py-3.5 text-center"><StatusBadge status={lr.status} /></td>
                   <td className="px-4 py-3.5 text-sm text-gray-500 italic">{lr.adminNote ?? '—'}</td>

@@ -7,18 +7,38 @@ import { format } from 'date-fns';
 type Params = Promise<{ id: string }>;
 
 // PATCH — admin updates leave request status/note
+const ALLOWED_TYPES = new Set([
+  'VL', 'SL', 'MATERNITY', 'PATERNITY', 'PUBLIC_HOLIDAY', 'UNPAID',
+]);
+
 export async function PATCH(req: NextRequest, { params }: { params: Params }) {
   try {
     const { id } = await params;
-    const { status, adminNote } = await req.json();
+    const { status, adminNote, leaveType } = await req.json();
 
-    if (!['pending', 'approved', 'denied'].includes(status)) {
+    // Validate status only if it's actually being changed (it's optional now —
+    // admin may PATCH only leaveType / adminNote without changing status).
+    if (status !== undefined && !['pending', 'approved', 'denied'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+    // leaveType can be null (clear classification) or one of the allowed types.
+    if (leaveType !== undefined && leaveType !== null && !ALLOWED_TYPES.has(leaveType)) {
+      return NextResponse.json({ error: 'Invalid leaveType' }, { status: 400 });
+    }
+
+    const data: Record<string, unknown> = {};
+    if (status !== undefined)    data.status = status;
+    if (adminNote !== undefined) data.adminNote = adminNote;
+    if (leaveType !== undefined) {
+      data.leaveType = leaveType;
+      data.classificationNote = leaveType === null
+        ? 'Cleared by admin'
+        : 'Set by admin';
     }
 
     const lr = await prisma.leaveRequest.update({
       where: { id },
-      data: { status, ...(adminNote !== undefined ? { adminNote } : {}) },
+      data,
       include: { contractor: { include: { user: true } } },
     });
 
