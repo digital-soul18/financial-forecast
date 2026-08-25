@@ -21,6 +21,8 @@ export interface ContractorRecord {
   accrualUsableDuringProbation: boolean;
   vlAccrualPerMonth: number;
   slAccrualPerMonth: number;
+  /** Overtime pay multiplier. 1 = straight time. PH statutory ordinary-day OT is 1.25. */
+  otMultiplier: number;
   createdAt: string;
   updatedAt: string;
   user: ContractorUser;
@@ -74,12 +76,17 @@ export interface Payslip {
   periodYear: number;
   workingDays: number;
   leaveDays: number;
+  /** Leave days covered by balance — do NOT reduce pay. 0 on pre-cutover payslips. */
+  paidLeaveDays: number;
+  /** Leave days that reduce pay. */
+  unpaidLeaveDays: number;
   billableDays: number;
   dailyRateSnap: number;
   grossAmount: number;
   deductions: number;
   overtimeHours: number;
   overtimeAmount: number;
+  otMultiplierSnap: number;
   netAmount: number;
   currency: string;
   currencySnapRate: number;

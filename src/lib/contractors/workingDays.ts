@@ -1,8 +1,3 @@
-interface LeaveRequestLike {
-  leaveDate: Date | string;
-  status: string;
-}
-
 /**
  * Count Mon–Fri working days between two dates (inclusive on both ends).
  */
@@ -46,24 +41,14 @@ export function getPayslipWorkingDays(
   return countWorkingDays(effectiveStart, periodEnd);
 }
 
-/**
- * Count approved leave days in a given period that fall on weekdays.
- * Weekend leave doesn't deduct pay.
+/*
+ * getApprovedLeaveDays() was removed in the 2026-06 leave cutover.
+ *
+ * It counted leave ROWS (.length) rather than summing `days`, so half-days
+ * deducted a full day's pay, and it ignored `leaveType` entirely, so public
+ * holidays and maternity/paternity leave also reduced pay.
+ *
+ * Paid-vs-unpaid resolution now lives in src/lib/leave/period.ts, which is
+ * balance-aware (only days beyond the accrued balance reduce pay) and
+ * type-aware. Use computePeriodLeaveForContractor() from src/lib/leave/server.
  */
-export function getApprovedLeaveDays(
-  leaveRequests: LeaveRequestLike[],
-  periodMonth: number,
-  periodYear: number,
-): number {
-  const periodStart = new Date(periodYear, periodMonth - 1, 1);
-  const periodEnd = new Date(periodYear, periodMonth, 0);
-
-  return leaveRequests.filter((lr) => {
-    if (lr.status !== 'approved') return false;
-    const d = new Date(lr.leaveDate);
-    d.setHours(0, 0, 0, 0);
-    if (d < periodStart || d > periodEnd) return false;
-    const day = d.getDay();
-    return day >= 1 && day <= 5; // Mon–Fri only
-  }).length;
-}

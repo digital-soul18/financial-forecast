@@ -43,6 +43,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
   const [editForm, setEditForm] = useState({
     name: '', dailyRate: '', startDate: '', currency: 'AUD',
     probationMonths: '6', country: 'PH', accrualUsableDuringProbation: false,
+    otMultiplier: '1',
   });
   const [editLoading, setEditLoading] = useState(false);
 
@@ -76,6 +77,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
       probationMonths: String(contractor.probationMonths ?? 6),
       country: contractor.country ?? 'PH',
       accrualUsableDuringProbation: Boolean(contractor.accrualUsableDuringProbation),
+      otMultiplier: String(contractor.otMultiplier ?? 1),
     });
     setEditing(true);
   }
@@ -93,6 +95,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         probationMonths: Number(editForm.probationMonths),
         country: editForm.country,
         accrualUsableDuringProbation: editForm.accrualUsableDuringProbation,
+        otMultiplier: Number(editForm.otMultiplier),
       }),
     });
     setEditing(false);
@@ -240,9 +243,16 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
     }
     return total;
   }
-  const showSimulator = payslips.some(
-    (p) => paidLeaveDaysInPeriod(p.periodMonth, p.periodYear) > 0,
-  );
+  /**
+   * A payslip predates the 2026-06 cutover if it has leave but no paidLeaveDays
+   * recorded — i.e. it was generated when ALL leave reduced pay. Those are the
+   * only rows the what-if column is still useful for; it disappears once the
+   * row is recalculated under the new logic.
+   */
+  const isPreCutover = (p: Payslip) =>
+    (p.paidLeaveDays ?? 0) === 0 &&
+    paidLeaveDaysInPeriod(p.periodMonth, p.periodYear) > 0;
+  const showSimulator = payslips.some(isPreCutover);
   const overtimeRequests: OvertimeRequest[] = contractor.overtimeRequests ?? [];
   const currency = contractor.currency ?? 'AUD';
   const showAud = currency !== 'AUD';
@@ -319,6 +329,23 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
               <input type="number" min="0" max="24" value={editForm.probationMonths}
                 onChange={(e) => setEditForm((p) => ({ ...p, probationMonths: e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide" title="Multiplier applied to the hourly OT rate. 1.0 = straight time.">
+                OT multiplier
+              </label>
+              <select value={editForm.otMultiplier}
+                onChange={(e) => setEditForm((p) => ({ ...p, otMultiplier: e.target.value }))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                <option value="1">1.00× — straight time</option>
+                <option value="1.25">1.25× — PH ordinary-day OT</option>
+                <option value="1.3">1.30× — rest-day / special holiday</option>
+                <option value="1.5">1.50× — time-and-a-half</option>
+                <option value="2">2.00× — double time</option>
+              </select>
+              <p className="text-[10px] text-gray-600 mt-1">
+                Applies to payslips generated or recalculated after saving.
+              </p>
             </div>
             <div className="col-span-full flex items-center gap-2 -mt-1">
               <input type="checkbox" id="accrualUsable" checked={editForm.accrualUsableDuringProbation}
@@ -409,52 +436,65 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
                   <td className="px-5 py-3.5 text-sm text-white font-medium">{MONTH_NAMES[p.periodMonth]} {p.periodYear}</td>
                   <td className="px-4 py-3.5 text-sm text-gray-300 text-right">{p.billableDays}/{p.workingDays}</td>
                   <td className="px-4 py-3.5 text-sm text-right">
-                    <span className={p.leaveDays > 0 ? 'text-red-400' : 'text-gray-500'}>{p.leaveDays}d</span>
+                    {p.leaveDays > 0 ? (
+                      <span
+                        title={
+                          isPreCutover(p)
+                            ? `${p.leaveDays}d leave — all deducted from pay (pre-cutover payslip)`
+                            : `${p.paidLeaveDays ?? 0}d paid (from balance) · ${p.unpaidLeaveDays ?? 0}d unpaid`
+                        }
+                      >
+                        <span className={(p.unpaidLeaveDays ?? p.leaveDays) > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                          {p.leaveDays}d
+                        </span>
+                        {!isPreCutover(p) && (p.paidLeaveDays ?? 0) > 0 && (
+                          <span className="block text-[10px] text-emerald-500">{p.paidLeaveDays}d paid</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">0d</span>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-sm text-right">
                     <span className={(p.overtimeHours ?? 0) > 0 ? 'text-emerald-400' : 'text-gray-600'}>
                       {(p.overtimeHours ?? 0) > 0 ? `${p.overtimeHours}h` : '—'}
                     </span>
+                    {(p.otMultiplierSnap ?? 1) !== 1 && (p.overtimeHours ?? 0) > 0 && (
+                      <span className="block text-[10px] text-amber-400" title={`Overtime paid at ${p.otMultiplierSnap}× the hourly rate`}>
+                        @ {p.otMultiplierSnap}×
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-sm text-violet-300 font-semibold text-right">{currency} {fmt(p.netAmount)}</td>
                   {showSimulator && (() => {
+                    if (!isPreCutover(p)) {
+                      return (
+                        <td className="px-4 py-3.5 text-sm text-right" title="This payslip already uses the current logic — paid leave does not reduce pay.">
+                          <span className="text-[10px] text-emerald-500">✓ applied</span>
+                        </td>
+                      );
+                    }
+                    // Pre-cutover row: show what it WOULD pay under current rules.
+                    // Cap the add-back at what was actually deducted.
                     const paidDaysRaw = paidLeaveDaysInPeriod(p.periodMonth, p.periodYear);
-                    // Never add back more than was actually deducted on the
-                    // payslip — protects against stale payslip.leaveDays if
-                    // leave rows changed since generation.
                     const paidDays = Math.min(paidDaysRaw, p.leaveDays);
-                    const stale    = paidDaysRaw > p.leaveDays;
                     const addBack  = paidDays * p.dailyRateSnap;
                     const simNet   = p.netAmount + addBack;
-                    const baseFull = p.workingDays * p.dailyRateSnap;
-                    const otAmt    = p.overtimeAmount ?? 0;
+                    const otRate   = (p.dailyRateSnap / 8) * (p.otMultiplierSnap ?? 1);
                     const tooltip  = [
-                      `Working days: ${p.workingDays} × ${currency} ${fmt(p.dailyRateSnap)} = ${currency} ${fmt(baseFull)}`,
-                      `Overtime: ${p.overtimeHours ?? 0}h × ${currency} ${fmt(p.dailyRateSnap / 8)} = ${currency} ${fmt(otAmt)}`,
+                      `Working days: ${p.workingDays} × ${currency} ${fmt(p.dailyRateSnap)} = ${currency} ${fmt(p.workingDays * p.dailyRateSnap)}`,
+                      `Overtime: ${p.overtimeHours ?? 0}h × ${currency} ${fmt(otRate)} = ${currency} ${fmt(p.overtimeAmount ?? 0)}`,
                       `Paid leave add-back: ${paidDays} × ${currency} ${fmt(p.dailyRateSnap)} = ${currency} ${fmt(addBack)}`,
                       `─────────────────────`,
-                      `Actual net: ${currency} ${fmt(p.netAmount)} (leave-days deducted from pay)`,
-                      `What-if net: ${currency} ${fmt(simNet)} (paid leave restored)`,
-                      stale ? `⚠ ${paidDaysRaw} paid-leave day(s) recorded but only ${p.leaveDays} deducted — payslip may need Recalc.` : '',
-                    ].filter(Boolean).join('\n');
+                      `Current net: ${currency} ${fmt(p.netAmount)} (old logic — all leave deducted)`,
+                      `After Recalc: ${currency} ${fmt(simNet)}`,
+                      ``,
+                      `Click Recalc to apply.`,
+                    ].join('\n');
                     return (
-                      <td
-                        className="px-4 py-3.5 text-sm text-right"
-                        title={tooltip}
-                      >
-                        {paidDays > 0 ? (
-                          <>
-                            <span className="text-amber-300 font-semibold">{currency} {fmt(simNet)}</span>
-                            <span className="block text-[10px] text-emerald-400">+{currency} {fmt(addBack)}</span>
-                            {stale && (
-                              <span className="block text-[10px] text-amber-400" title="Paid-leave count exceeds what was deducted on this payslip — click Recalc">
-                                ⚠ stale
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-gray-600">—</span>
-                        )}
+                      <td className="px-4 py-3.5 text-sm text-right" title={tooltip}>
+                        <span className="text-amber-300 font-semibold">{currency} {fmt(simNet)}</span>
+                        <span className="block text-[10px] text-emerald-400">+{currency} {fmt(addBack)}</span>
                       </td>
                     );
                   })()}

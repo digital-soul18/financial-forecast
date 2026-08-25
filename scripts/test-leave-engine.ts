@@ -6,6 +6,7 @@
  */
 
 import { computeBalance } from '../src/lib/leave/balance';
+import { computePeriodLeave } from '../src/lib/leave/period';
 import { classifyLeave } from '../src/lib/leave/classifier';
 import { nswPublicHolidaysRange, publicHolidayDateSet } from '../src/lib/leave/holidays';
 import type { LeaveEvent, LeavePolicy } from '../src/lib/leave/types';
@@ -102,6 +103,84 @@ const tareshEarly = computeBalance(TARESH_POLICY, [], [], new Date(2025, 11, 15)
 checkEq('isLockedByProbation', tareshEarly.isLockedByProbation, false);
 check  ('VL accrued', tareshEarly.vl.accrued, 1 * 0.83); // 1 completed month Nov1→Dec15
 check  ('VL available (usable)', tareshEarly.vl.available, 1 * 0.83);
+
+// ── Period leave → pay resolution (2026-06 cutover) ────────────────────────
+console.log('\nPeriod pay resolution — Steph, May 2026 (3 VL days, balance ample)');
+{
+  const b = computePeriodLeave(
+    STEPH_POLICY, STEPH_EVENTS, [],
+    new Date(2026, 4, 1), new Date(2026, 4, 31),
+  );
+  check  ('total leave days', b.totalDays,  3);
+  check  ('paid days',        b.paidDays,   3);   // covered by VL balance
+  check  ('unpaid days',      b.unpaidDays, 0);   // → pay is NOT reduced
+  check  ('VL drawn',         b.vlDrawn,    3);
+}
+
+console.log('\nPeriod pay resolution — public holiday never reduces pay');
+{
+  // 25 Dec 2026 is a Friday — a weekday AU public holiday.
+  const events: LeaveEvent[] = [{ date: new Date(2026, 11, 25), type: 'PUBLIC_HOLIDAY', days: 1 }];
+  const b = computePeriodLeave(
+    STEPH_POLICY, events, [],
+    new Date(2026, 11, 1), new Date(2026, 11, 31),
+  );
+  check  ('paid days',         b.paidDays,        1);
+  check  ('unpaid days',       b.unpaidDays,      0);
+  check  ('pool-neutral days', b.poolNeutralDays, 1);
+  check  ('VL drawn (none)',   b.vlDrawn,         0);
+}
+
+console.log('\nPeriod pay resolution — half-day deducts 0.5, not 1.0');
+{
+  const events: LeaveEvent[] = [{ date: new Date(2026, 4, 5), type: 'UNPAID', days: 0.5 }];
+  const b = computePeriodLeave(
+    STEPH_POLICY, events, [],
+    new Date(2026, 4, 1), new Date(2026, 4, 31),
+  );
+  check('unpaid days', b.unpaidDays, 0.5);
+}
+
+console.log('\nPeriod pay resolution — leave beyond balance spills to unpaid');
+{
+  // 12 VL days in one month against a ~7.5-day balance.
+  const many: LeaveEvent[] = [];
+  for (let d = 1; d <= 20 && many.length < 12; d++) {
+    const date = new Date(2026, 5, d);
+    if (date.getDay() >= 1 && date.getDay() <= 5) many.push({ date, type: 'VL', days: 1 });
+  }
+  const b = computePeriodLeave(
+    STEPH_POLICY, many, [],
+    new Date(2026, 5, 1), new Date(2026, 5, 30),
+  );
+  check  ('total days',  b.totalDays, 12);
+  checkEq('some unpaid', b.unpaidDays > 0, true);
+  checkEq('paid + unpaid == total', Math.abs(b.paidDays + b.unpaidDays - b.totalDays) < 0.001, true);
+  checkEq('warning raised', b.warnings.length > 0, true);
+}
+
+console.log('\nPeriod pay resolution — pre-regularisation leave is unpaid (Steph)');
+{
+  const events: LeaveEvent[] = [{ date: new Date(2026, 0, 8), type: 'VL', days: 1 }]; // 8 Jan, before 15 Mar
+  const b = computePeriodLeave(
+    STEPH_POLICY, events, [],
+    new Date(2026, 0, 1), new Date(2026, 0, 31),
+  );
+  check  ('unpaid days',    b.unpaidDays, 1);
+  check  ('paid days',      b.paidDays,   0);
+  checkEq('warning raised', b.warnings.length > 0, true);
+}
+
+console.log('\nPeriod pay resolution — Taresh CAN use credits during probation');
+{
+  const events: LeaveEvent[] = [{ date: new Date(2025, 11, 15), type: 'VL', days: 0.5 }]; // Dec 15, probation
+  const b = computePeriodLeave(
+    TARESH_POLICY, events, [],
+    new Date(2025, 11, 1), new Date(2025, 11, 31),
+  );
+  check('paid days',   b.paidDays,   0.5); // 0.83 accrued covers 0.5
+  check('unpaid days', b.unpaidDays, 0);
+}
 
 // ── Result ─────────────────────────────────────────────────────────────────
 console.log(`\n${failures === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failures} TEST(S) FAILED`}\n`);

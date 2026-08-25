@@ -87,6 +87,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
     }
     if ('vlAccrualPerMonth' in body) contractorUpdates.vlAccrualPerMonth = Number(body.vlAccrualPerMonth);
     if ('slAccrualPerMonth' in body) contractorUpdates.slAccrualPerMonth = Number(body.slAccrualPerMonth);
+    if ('otMultiplier' in body) {
+      const m = Number(body.otMultiplier);
+      if (!Number.isFinite(m) || m < 1 || m > 3) {
+        return NextResponse.json({ error: 'otMultiplier must be between 1 and 3' }, { status: 400 });
+      }
+      contractorUpdates.otMultiplier = m;
+    }
 
     const contractor = await prisma.$transaction(async (tx) => {
       const c = await tx.contractor.update({

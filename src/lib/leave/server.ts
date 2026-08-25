@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/db';
 import { computeBalance } from './balance';
 import { classifyLeave } from './classifier';
+import { computePeriodLeave, type PeriodLeaveBreakdown } from './period';
 import { nswPublicHolidaysRange, publicHolidayDateSet } from './holidays';
 import type {
   ForfeitureEvent,
@@ -82,10 +83,19 @@ function toLeaveEvent(row: LeaveRow, holidays: Set<string>): LeaveEvent | null {
   return { date: row.leaveDate, type, days: row.days };
 }
 
-export async function computeBalanceForContractor(
-  contractorId: string,
-  asOf: Date = new Date(),
-): Promise<LeaveBalance> {
+/**
+ * Load everything the leave engines need for one contractor, in one round trip.
+ *
+ * `events` drops rows that can't be classified (they must not silently draw
+ * from a pool). `unclassifiedEvents` keeps them separately so the payslip path
+ * can still treat them as unpaid rather than accidentally paying for them.
+ */
+export async function loadLeaveContext(contractorId: string): Promise<{
+  policy: LeavePolicy;
+  events: LeaveEvent[];
+  unclassifiedEvents: LeaveEvent[];
+  forfeitures: ForfeitureEvent[];
+}> {
   const c = await prisma.contractor.findUnique({
     where: { id: contractorId },
     select: {
@@ -114,9 +124,18 @@ export async function computeBalanceForContractor(
   ]);
 
   const holidays = auHolidayDateSet();
-  const events = leaveRows
-    .map((r) => toLeaveEvent(r, holidays))
-    .filter((e): e is LeaveEvent => e !== null);
+  const events: LeaveEvent[] = [];
+  const unclassifiedEvents: LeaveEvent[] = [];
+
+  for (const r of leaveRows) {
+    const e = toLeaveEvent(r, holidays);
+    if (e) { events.push(e); continue; }
+    // Approved but unclassifiable — surfaced to the payslip path as UNPAID so
+    // we never pay for a day nobody has categorised. Admin can reclassify.
+    if (r.status === 'approved') {
+      unclassifiedEvents.push({ date: r.leaveDate, type: 'UNPAID', days: r.days });
+    }
+  }
 
   const forfeitures: ForfeitureEvent[] = forfRows.map((f: ForfeitureRow) => ({
     anniversaryDate: f.anniversaryDate,
@@ -124,5 +143,50 @@ export async function computeBalanceForContractor(
     slForfeited: f.slForfeited,
   }));
 
-  return computeBalance(asPolicy(c), events, forfeitures, asOf);
+  return { policy: asPolicy(c), events, unclassifiedEvents, forfeitures };
+}
+
+export async function computeBalanceForContractor(
+  contractorId: string,
+  asOf: Date = new Date(),
+): Promise<LeaveBalance> {
+  const { policy, events, forfeitures } = await loadLeaveContext(contractorId);
+  return computeBalance(policy, events, forfeitures, asOf);
+}
+
+/**
+ * Resolve paid vs unpaid leave days for one calendar month. Used by the
+ * payslip engine.
+ */
+export async function computePeriodLeaveForContractor(
+  contractorId: string,
+  month: number,
+  year: number,
+): Promise<PeriodLeaveBreakdown> {
+  const { policy, events, unclassifiedEvents, forfeitures } =
+    await loadLeaveContext(contractorId);
+
+  const periodStart = new Date(year, month - 1, 1);
+  const periodEnd   = new Date(year, month, 0);
+
+  const breakdown = computePeriodLeave(
+    policy,
+    [...events, ...unclassifiedEvents],
+    forfeitures,
+    periodStart,
+    periodEnd,
+  );
+
+  // Flag unclassified days that landed in this period so admin knows why pay
+  // was reduced.
+  const unclassifiedInPeriod = unclassifiedEvents.filter(
+    (e) => e.date >= periodStart && e.date <= periodEnd,
+  );
+  for (const e of unclassifiedInPeriod) {
+    breakdown.warnings.push(
+      `${e.date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}: leave type not set — treated as unpaid. Classify it to make it paid.`,
+    );
+  }
+
+  return breakdown;
 }

@@ -156,6 +156,10 @@ model Contractor {
   vlAccrualPerMonth            Float   @default(0.83)
   /// Days of SL accrued per completed month. Default 5/12 ≈ 0.42.
   slAccrualPerMonth            Float   @default(0.42)
+  /// Overtime pay multiplier. 1.0 = straight time (default, unchanged
+  /// behaviour). PH Labor Code Art. 87 ordinary-day OT is 1.25 — set per
+  /// contractor once worker classification is confirmed.
+  otMultiplier                 Float   @default(1)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   leaveRequests    LeaveRequest[]
@@ -211,13 +215,20 @@ model Payslip {
   periodMonth      Int        // 1–12
   periodYear       Int
   workingDays      Int        // Mon–Fri in period (pro-rated if start date mid-month)
-  leaveDays        Int        // approved Mon–Fri leave days deducted
-  billableDays     Int        // workingDays - leaveDays
+  leaveDays        Float      // total approved Mon–Fri leave days in period
+  billableDays     Float      // workingDays − unpaidLeaveDays
+  /// Leave days covered by accrued balance (or a non-deducting type) — these
+  /// do NOT reduce pay. 0 on payslips generated before the 2026-06 cutover.
+  paidLeaveDays    Float      @default(0)
+  /// Leave days that reduce pay (beyond balance, pre-regularisation, unpaid,
+  /// or unclassified).
+  unpaidLeaveDays  Float      @default(0)
   dailyRateSnap    Float      // snapshot at generation time (in contractor's currency)
   grossAmount      Float      // workingDays × dailyRateSnap
-  deductions       Float      // leaveDays × dailyRateSnap
+  deductions       Float      // unpaidLeaveDays × dailyRateSnap
   overtimeHours    Float      @default(0)  // approved overtime hours in period
-  overtimeAmount   Float      @default(0)  // overtimeHours × (dailyRateSnap / 8)
+  overtimeAmount   Float      @default(0)  // hours × (dailyRateSnap / 8) × otMultiplierSnap
+  otMultiplierSnap Float      @default(1)  // snapshot of contractor.otMultiplier
   netAmount        Float      // (billableDays × dailyRateSnap) + overtimeAmount
   currency         String     @default("AUD")  // snapshot of contractor.currency
   currencySnapRate Float      @default(1)      // 1 unit currency = X AUD at gen time
