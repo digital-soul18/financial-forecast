@@ -418,18 +418,39 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
                   </td>
                   <td className="px-4 py-3.5 text-sm text-violet-300 font-semibold text-right">{currency} {fmt(p.netAmount)}</td>
                   {showSimulator && (() => {
-                    const paidDays = paidLeaveDaysInPeriod(p.periodMonth, p.periodYear);
-                    const addBack = paidDays * p.dailyRateSnap;
-                    const simNet  = p.netAmount + addBack;
+                    const paidDaysRaw = paidLeaveDaysInPeriod(p.periodMonth, p.periodYear);
+                    // Never add back more than was actually deducted on the
+                    // payslip — protects against stale payslip.leaveDays if
+                    // leave rows changed since generation.
+                    const paidDays = Math.min(paidDaysRaw, p.leaveDays);
+                    const stale    = paidDaysRaw > p.leaveDays;
+                    const addBack  = paidDays * p.dailyRateSnap;
+                    const simNet   = p.netAmount + addBack;
+                    const baseFull = p.workingDays * p.dailyRateSnap;
+                    const otAmt    = p.overtimeAmount ?? 0;
+                    const tooltip  = [
+                      `Working days: ${p.workingDays} × ${currency} ${fmt(p.dailyRateSnap)} = ${currency} ${fmt(baseFull)}`,
+                      `Overtime: ${p.overtimeHours ?? 0}h × ${currency} ${fmt(p.dailyRateSnap / 8)} = ${currency} ${fmt(otAmt)}`,
+                      `Paid leave add-back: ${paidDays} × ${currency} ${fmt(p.dailyRateSnap)} = ${currency} ${fmt(addBack)}`,
+                      `─────────────────────`,
+                      `Actual net: ${currency} ${fmt(p.netAmount)} (leave-days deducted from pay)`,
+                      `What-if net: ${currency} ${fmt(simNet)} (paid leave restored)`,
+                      stale ? `⚠ ${paidDaysRaw} paid-leave day(s) recorded but only ${p.leaveDays} deducted — payslip may need Recalc.` : '',
+                    ].filter(Boolean).join('\n');
                     return (
                       <td
                         className="px-4 py-3.5 text-sm text-right"
-                        title={`Adds ${paidDays} paid-leave day${paidDays === 1 ? '' : 's'} back to billable at ${currency} ${fmt(p.dailyRateSnap)}/day`}
+                        title={tooltip}
                       >
                         {paidDays > 0 ? (
                           <>
                             <span className="text-amber-300 font-semibold">{currency} {fmt(simNet)}</span>
                             <span className="block text-[10px] text-emerald-400">+{currency} {fmt(addBack)}</span>
+                            {stale && (
+                              <span className="block text-[10px] text-amber-400" title="Paid-leave count exceeds what was deducted on this payslip — click Recalc">
+                                ⚠ stale
+                              </span>
+                            )}
                           </>
                         ) : (
                           <span className="text-gray-600">—</span>
