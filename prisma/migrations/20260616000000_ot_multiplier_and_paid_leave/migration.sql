@@ -11,10 +11,8 @@ ALTER TABLE "Payslip" ADD COLUMN "paidLeaveDays"    REAL NOT NULL DEFAULT 0;
 ALTER TABLE "Payslip" ADD COLUMN "unpaidLeaveDays"  REAL NOT NULL DEFAULT 0;
 ALTER TABLE "Payslip" ADD COLUMN "otMultiplierSnap" REAL NOT NULL DEFAULT 1;
 
--- Payslip.leaveDays / billableDays widened Int -> Float in the Prisma schema so
--- half-day leave (0.5) reconciles against netAmount.
---
--- No DDL required: SQLite uses type affinity, and an INTEGER-affinity column
--- stores a non-integral REAL (e.g. 21.5) as REAL without loss. Existing whole
--- numbers are unaffected. Avoiding a table rebuild keeps this migration safe to
--- run against production data.
+-- NOTE: leaveDays / billableDays deliberately remain INTEGER.
+-- Widening them to Float caused `prisma db push` (used in the container start
+-- command) to abort with a data-loss warning, crash-looping the deployment.
+-- Fractional precision lives in paidLeaveDays / unpaidLeaveDays instead, and
+-- netAmount is always computed from those exact values.

@@ -215,8 +215,13 @@ model Payslip {
   periodMonth      Int        // 1–12
   periodYear       Int
   workingDays      Int        // Mon–Fri in period (pro-rated if start date mid-month)
-  leaveDays        Float      // total approved Mon–Fri leave days in period
-  billableDays     Float      // workingDays − unpaidLeaveDays
+  // NOTE: these two stay Int. Changing them to Float makes `prisma db push`
+  // (used in the Docker start command) refuse to run without
+  // --accept-data-loss, which crash-loops the container. Exact fractional
+  // values live in paidLeaveDays / unpaidLeaveDays below; these are rounded
+  // display figures. netAmount is always computed from the exact values.
+  leaveDays        Int        // total approved Mon–Fri leave days in period (rounded)
+  billableDays     Int        // workingDays − unpaidLeaveDays (rounded)
   /// Leave days covered by accrued balance (or a non-deducting type) — these
   /// do NOT reduce pay. 0 on payslips generated before the 2026-06 cutover.
   paidLeaveDays    Float      @default(0)

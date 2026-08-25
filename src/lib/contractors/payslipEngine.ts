@@ -70,10 +70,12 @@ export async function generatePayslipForContractor(
   // Leave: only days NOT covered by accrued balance reduce pay. Paid VL/SL,
   // public holidays and maternity/paternity leave the pay untouched.
   const leave = await computePeriodLeaveForContractor(contractorId, month, year);
-  const leaveDays = leave.totalDays;
   const paidLeaveDays = leave.paidDays;
   const unpaidLeaveDays = leave.unpaidDays;
-  const billableDays = Math.max(0, workingDays - unpaidLeaveDays);
+  // Exact value drives the money; the Int columns store rounded display figures.
+  const billableExact = Math.max(0, workingDays - unpaidLeaveDays);
+  const leaveDays = Math.round(leave.totalDays);
+  const billableDays = Math.round(billableExact);
   const dailyRateSnap = contractor.dailyRate;
   const grossAmount = workingDays * dailyRateSnap;
   const deductions = unpaidLeaveDays * dailyRateSnap;
@@ -83,7 +85,7 @@ export async function generatePayslipForContractor(
   const overtimeHours = getApprovedOvertimeHours(contractor.overtimeRequests, month, year);
   const overtimeAmount = overtimeHours * (dailyRateSnap / HOURS_PER_DAY) * otMultiplierSnap;
 
-  const netAmount = (billableDays * dailyRateSnap) + overtimeAmount;
+  const netAmount = (billableExact * dailyRateSnap) + overtimeAmount;
 
   if (leave.warnings.length > 0) {
     console.warn(`[PayslipEngine] ${contractor.name} ${MONTH_NAMES[month]} ${year}:`, leave.warnings);
@@ -176,17 +178,18 @@ export async function regeneratePayslip(payslipId: string): Promise<{ id: string
 
   const workingDays = getPayslipWorkingDays(periodMonth, periodYear, contractor.startDate);
   const leave = await computePeriodLeaveForContractor(contractorId, periodMonth, periodYear);
-  const leaveDays = leave.totalDays;
   const paidLeaveDays = leave.paidDays;
   const unpaidLeaveDays = leave.unpaidDays;
-  const billableDays = Math.max(0, workingDays - unpaidLeaveDays);
+  const billableExact = Math.max(0, workingDays - unpaidLeaveDays);
+  const leaveDays = Math.round(leave.totalDays);
+  const billableDays = Math.round(billableExact);
   const dailyRateSnap = contractor.dailyRate;
   const grossAmount = workingDays * dailyRateSnap;
   const deductions = unpaidLeaveDays * dailyRateSnap;
   const otMultiplierSnap = contractor.otMultiplier ?? 1;
   const overtimeHours = getApprovedOvertimeHours(contractor.overtimeRequests, periodMonth, periodYear);
   const overtimeAmount = overtimeHours * (dailyRateSnap / HOURS_PER_DAY) * otMultiplierSnap;
-  const netAmount = (billableDays * dailyRateSnap) + overtimeAmount;
+  const netAmount = (billableExact * dailyRateSnap) + overtimeAmount;
   const currency = contractor.currency ?? 'AUD';
   const currencySnapRate = await getExchangeRate(currency);
   const netAmountAud = netAmount * currencySnapRate;
