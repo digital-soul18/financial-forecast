@@ -52,3 +52,39 @@ export function getPayslipWorkingDays(
  * balance-aware (only days beyond the accrued balance reduce pay) and
  * type-aware. Use computePeriodLeaveForContractor() from src/lib/leave/server.
  */
+
+/**
+ * Split a period's working days around a boundary date (used for the
+ * probation → post-probation salary change, which can land mid-month).
+ *
+ * Returns working days strictly BEFORE `boundary`, and those on/after it.
+ * Both respect the contractor's start date, same as getPayslipWorkingDays.
+ */
+export function splitWorkingDaysAtDate(
+  periodMonth: number,
+  periodYear: number,
+  contractorStartDate: Date,
+  boundary: Date,
+): { before: number; after: number } {
+  const total = getPayslipWorkingDays(periodMonth, periodYear, contractorStartDate);
+  if (total === 0) return { before: 0, after: 0 };
+
+  const periodStart = new Date(periodYear, periodMonth - 1, 1);
+  const periodEnd = new Date(periodYear, periodMonth, 0);
+
+  const start = new Date(contractorStartDate);
+  start.setHours(0, 0, 0, 0);
+  const effectiveStart = start > periodStart ? start : periodStart;
+
+  const b = new Date(boundary);
+  b.setHours(0, 0, 0, 0);
+
+  if (b <= effectiveStart) return { before: 0, after: total };
+  if (b > periodEnd) return { before: total, after: 0 };
+
+  // Day before the boundary is the last "before" day.
+  const beforeEnd = new Date(b);
+  beforeEnd.setDate(beforeEnd.getDate() - 1);
+  const before = countWorkingDays(effectiveStart, beforeEnd);
+  return { before, after: total - before };
+}

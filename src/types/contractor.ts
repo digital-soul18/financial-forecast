@@ -23,6 +23,10 @@ export interface ContractorRecord {
   slAccrualPerMonth: number;
   /** Overtime pay multiplier. 1 = straight time. PH statutory ordinary-day OT is 1.25. */
   otMultiplier: number;
+  /** "daily" (workingDays x dailyRate) or "monthly" (flat salary). */
+  payModel: string;
+  monthlySalary: number | null;
+  probationSalary: number | null;
   createdAt: string;
   updatedAt: string;
   user: ContractorUser;
@@ -87,6 +91,8 @@ export interface Payslip {
   overtimeHours: number;
   overtimeAmount: number;
   otMultiplierSnap: number;
+  payModelSnap: string;
+  baseSalarySnap: number;
   netAmount: number;
   currency: string;
   currencySnapRate: number;

@@ -44,6 +44,7 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
     name: '', dailyRate: '', startDate: '', currency: 'AUD',
     probationMonths: '6', country: 'PH', accrualUsableDuringProbation: false,
     otMultiplier: '1',
+    payModel: 'daily', monthlySalary: '', probationSalary: '',
   });
   const [editLoading, setEditLoading] = useState(false);
 
@@ -78,6 +79,9 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
       country: contractor.country ?? 'PH',
       accrualUsableDuringProbation: Boolean(contractor.accrualUsableDuringProbation),
       otMultiplier: String(contractor.otMultiplier ?? 1),
+      payModel: contractor.payModel ?? 'daily',
+      monthlySalary: contractor.monthlySalary != null ? String(contractor.monthlySalary) : '',
+      probationSalary: contractor.probationSalary != null ? String(contractor.probationSalary) : '',
     });
     setEditing(true);
   }
@@ -96,6 +100,9 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
         country: editForm.country,
         accrualUsableDuringProbation: editForm.accrualUsableDuringProbation,
         otMultiplier: Number(editForm.otMultiplier),
+        payModel: editForm.payModel,
+        monthlySalary: editForm.monthlySalary === '' ? null : Number(editForm.monthlySalary),
+        probationSalary: editForm.probationSalary === '' ? null : Number(editForm.probationSalary),
       }),
     });
     setEditing(false);
@@ -312,6 +319,38 @@ export default function ContractorDetailPage({ params }: { params: Promise<{ id:
               <input type="date" value={editForm.startDate} onChange={(e) => setEditForm((p) => ({ ...p, startDate: e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
+            {/* ── Pay model ────────────────────────────────────────────────── */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide" title="Monthly = flat contracted salary. Daily = workingDays x dailyRate (pay swings 20-23 days/month).">
+                Pay model
+              </label>
+              <select value={editForm.payModel}
+                onChange={(e) => setEditForm((p) => ({ ...p, payModel: e.target.value }))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                <option value="daily">Daily rate × working days</option>
+                <option value="monthly">Fixed monthly salary</option>
+              </select>
+            </div>
+            {editForm.payModel === 'monthly' && (
+              <>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Monthly salary</label>
+                  <input type="number" step="0.01" min="0" value={editForm.monthlySalary}
+                    placeholder="e.g. 5000"
+                    onChange={(e) => setEditForm((p) => ({ ...p, monthlySalary: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide" title="Leave blank if the contract has no separate probation rate.">
+                    Probation salary <span className="normal-case text-gray-600">(optional)</span>
+                  </label>
+                  <input type="number" step="0.01" min="0" value={editForm.probationSalary}
+                    placeholder="blank = same"
+                    onChange={(e) => setEditForm((p) => ({ ...p, probationSalary: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                </div>
+              </>
+            )}
             {/* ── Leave policy (drives src/lib/leave/ engine) ─────────────────── */}
             <div>
               <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Country</label>

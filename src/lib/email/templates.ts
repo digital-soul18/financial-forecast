@@ -146,6 +146,8 @@ export function payslipEmailHtml(opts: {
   overtimeHours: number;
   overtimeAmount: number;
   otMultiplier?: number;
+  payModel?: string;
+  baseSalary?: number;
   netAmount: number;
   currency: string;
   currencySnapRate: number;
@@ -162,6 +164,7 @@ export function payslipEmailHtml(opts: {
   const paidLeave   = opts.paidLeaveDays ?? 0;
   const otMult      = opts.otMultiplier ?? 1;
   const otRate      = (opts.dailyRate / 8) * otMult;
+  const isMonthly   = opts.payModel === 'monthly';
   const body = `
     <p style="margin:0 0 8px;color:#374151;font-size:16px;font-weight:600;">Hi ${opts.name},</p>
     <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Your payslip for <strong>${monthName} ${opts.year}</strong> has been generated.</p>
@@ -170,7 +173,9 @@ export function payslipEmailHtml(opts: {
         <td style="padding:10px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Item</td>
         <td style="padding:10px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;text-align:right;">Amount</td>
       </tr>
-      <tr><td style="padding:10px 16px;color:#374151;font-size:14px;">Working Days (${opts.billableDays} × ${opts.currency} ${fmt(opts.dailyRate)})</td><td style="padding:10px 16px;text-align:right;color:#374151;font-size:14px;">${opts.currency} ${fmt(opts.billableDays * opts.dailyRate)}</td></tr>
+      ${isMonthly
+        ? `<tr><td style="padding:10px 16px;color:#374151;font-size:14px;">Monthly Salary</td><td style="padding:10px 16px;text-align:right;color:#374151;font-size:14px;">${opts.currency} ${fmt(opts.baseSalary ?? 0)}</td></tr>`
+        : `<tr><td style="padding:10px 16px;color:#374151;font-size:14px;">Working Days (${opts.billableDays} × ${opts.currency} ${fmt(opts.dailyRate)})</td><td style="padding:10px 16px;text-align:right;color:#374151;font-size:14px;">${opts.currency} ${fmt(opts.billableDays * opts.dailyRate)}</td></tr>`}
       ${paidLeave > 0 ? `<tr style="background:#f0fdf4;"><td style="padding:10px 16px;color:#059669;font-size:14px;">Paid Leave (${paidLeave} day${paidLeave !== 1 ? 's' : ''} — drawn from your leave balance)</td><td style="padding:10px 16px;text-align:right;color:#059669;font-size:14px;">No deduction</td></tr>` : ''}
       ${unpaidLeave > 0 ? `<tr style="background:#fef2f2;"><td style="padding:10px 16px;color:#dc2626;font-size:14px;">Unpaid Leave (${unpaidLeave} day${unpaidLeave !== 1 ? 's' : ''})</td><td style="padding:10px 16px;text-align:right;color:#dc2626;font-size:14px;">−${opts.currency} ${fmt(unpaidLeave * opts.dailyRate)}</td></tr>` : ''}
       ${opts.overtimeHours > 0 ? `<tr style="background:#f0fdf4;"><td style="padding:10px 16px;color:#059669;font-size:14px;">Overtime (${opts.overtimeHours}h × ${opts.currency} ${fmt(otRate)}/h${otMult !== 1 ? ` @ ${otMult}×` : ''})</td><td style="padding:10px 16px;text-align:right;color:#059669;font-size:14px;">+${opts.currency} ${fmt(opts.overtimeAmount)}</td></tr>` : ''}

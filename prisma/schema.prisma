@@ -160,6 +160,16 @@ model Contractor {
   /// behaviour). PH Labor Code Art. 87 ordinary-day OT is 1.25 — set per
   /// contractor once worker classification is confirmed.
   otMultiplier                 Float   @default(1)
+  /// "daily"  = workingDays × dailyRate (legacy default, unchanged behaviour)
+  /// "monthly" = flat monthlySalary, unaffected by how many weekdays the month
+  ///             happens to have. Day rate for unpaid-leave deductions and
+  ///             overtime is derived as monthlySalary ÷ workingDaysInMonth.
+  payModel                     String  @default("daily")
+  /// Flat monthly salary, in the contractor's currency. Used when payModel = "monthly".
+  monthlySalary                Float?
+  /// Monthly salary during probation, if the contract sets a lower rate.
+  /// Null = use monthlySalary throughout.
+  probationSalary              Float?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   leaveRequests    LeaveRequest[]
@@ -234,6 +244,8 @@ model Payslip {
   overtimeHours    Float      @default(0)  // approved overtime hours in period
   overtimeAmount   Float      @default(0)  // hours × (dailyRateSnap / 8) × otMultiplierSnap
   otMultiplierSnap Float      @default(1)  // snapshot of contractor.otMultiplier
+  payModelSnap     String     @default("daily") // "daily" | "monthly" at generation time
+  baseSalarySnap   Float      @default(0)       // monthly salary applied (0 for daily model)
   netAmount        Float      // (billableDays × dailyRateSnap) + overtimeAmount
   currency         String     @default("AUD")  // snapshot of contractor.currency
   currencySnapRate Float      @default(1)      // 1 unit currency = X AUD at gen time

@@ -87,6 +87,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
     }
     if ('vlAccrualPerMonth' in body) contractorUpdates.vlAccrualPerMonth = Number(body.vlAccrualPerMonth);
     if ('slAccrualPerMonth' in body) contractorUpdates.slAccrualPerMonth = Number(body.slAccrualPerMonth);
+    if ('payModel' in body) {
+      const pm = String(body.payModel);
+      if (pm !== 'daily' && pm !== 'monthly') {
+        return NextResponse.json({ error: 'payModel must be "daily" or "monthly"' }, { status: 400 });
+      }
+      contractorUpdates.payModel = pm;
+    }
+    for (const f of ['monthlySalary', 'probationSalary'] as const) {
+      if (f in body) {
+        if (body[f] === null || body[f] === '') { contractorUpdates[f] = null; continue; }
+        const v = Number(body[f]);
+        if (!Number.isFinite(v) || v < 0) {
+          return NextResponse.json({ error: `${f} must be a non-negative number` }, { status: 400 });
+        }
+        contractorUpdates[f] = v;
+      }
+    }
     if ('otMultiplier' in body) {
       const m = Number(body.otMultiplier);
       if (!Number.isFinite(m) || m < 1 || m > 3) {

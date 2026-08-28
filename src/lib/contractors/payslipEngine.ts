@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { getPayslipWorkingDays } from './workingDays';
+import { resolvePayBasis } from './payBasis';
 import { computePeriodLeaveForContractor } from '@/lib/leave/server';
 import { getExchangeRate } from './fx';
 import { sendEmail } from '@/lib/email/sendEmail';
@@ -76,19 +77,33 @@ export async function generatePayslipForContractor(
   const billableExact = Math.max(0, workingDays - unpaidLeaveDays);
   const leaveDays = Math.round(leave.totalDays);
   const billableDays = Math.round(billableExact);
-  const dailyRateSnap = contractor.dailyRate;
-  const grossAmount = workingDays * dailyRateSnap;
-  const deductions = unpaidLeaveDays * dailyRateSnap;
+
+  // Pay basis — flat monthly salary or legacy workingDays × dailyRate.
+  const basis = resolvePayBasis({
+    payModel: contractor.payModel,
+    dailyRate: contractor.dailyRate,
+    monthlySalary: contractor.monthlySalary,
+    probationSalary: contractor.probationSalary,
+    startDate: contractor.startDate,
+    probationMonths: contractor.probationMonths,
+    workingDays,
+    periodMonth: month,
+    periodYear: year,
+  });
+  const dailyRateSnap = basis.dayRate;
+  const grossAmount = basis.baseAmount;
+  const deductions = unpaidLeaveDays * basis.dayRate;
 
   // Overtime — multiplier is 1.0 (straight time) unless set per contractor.
   const otMultiplierSnap = contractor.otMultiplier ?? 1;
   const overtimeHours = getApprovedOvertimeHours(contractor.overtimeRequests, month, year);
-  const overtimeAmount = overtimeHours * (dailyRateSnap / HOURS_PER_DAY) * otMultiplierSnap;
+  const overtimeAmount = overtimeHours * (basis.dayRate / HOURS_PER_DAY) * otMultiplierSnap;
 
-  const netAmount = (billableExact * dailyRateSnap) + overtimeAmount;
+  const netAmount = Math.max(0, basis.baseAmount - deductions) + overtimeAmount;
 
-  if (leave.warnings.length > 0) {
-    console.warn(`[PayslipEngine] ${contractor.name} ${MONTH_NAMES[month]} ${year}:`, leave.warnings);
+  const allNotes = [...leave.warnings, ...basis.notes];
+  if (allNotes.length > 0) {
+    console.warn(`[PayslipEngine] ${contractor.name} ${MONTH_NAMES[month]} ${year}:`, allNotes);
   }
 
   // FX conversion
@@ -112,6 +127,8 @@ export async function generatePayslipForContractor(
       overtimeHours,
       overtimeAmount,
       otMultiplierSnap,
+      payModelSnap: basis.model,
+      baseSalarySnap: basis.baseSalary,
       netAmount,
       currency,
       currencySnapRate,
@@ -138,6 +155,8 @@ export async function generatePayslipForContractor(
       overtimeHours,
       overtimeAmount,
       otMultiplier: otMultiplierSnap,
+      payModel: basis.model,
+      baseSalary: basis.baseSalary,
       netAmount,
       currency,
       currencySnapRate,
@@ -183,13 +202,24 @@ export async function regeneratePayslip(payslipId: string): Promise<{ id: string
   const billableExact = Math.max(0, workingDays - unpaidLeaveDays);
   const leaveDays = Math.round(leave.totalDays);
   const billableDays = Math.round(billableExact);
-  const dailyRateSnap = contractor.dailyRate;
-  const grossAmount = workingDays * dailyRateSnap;
-  const deductions = unpaidLeaveDays * dailyRateSnap;
+  const basis = resolvePayBasis({
+    payModel: contractor.payModel,
+    dailyRate: contractor.dailyRate,
+    monthlySalary: contractor.monthlySalary,
+    probationSalary: contractor.probationSalary,
+    startDate: contractor.startDate,
+    probationMonths: contractor.probationMonths,
+    workingDays,
+    periodMonth,
+    periodYear,
+  });
+  const dailyRateSnap = basis.dayRate;
+  const grossAmount = basis.baseAmount;
+  const deductions = unpaidLeaveDays * basis.dayRate;
   const otMultiplierSnap = contractor.otMultiplier ?? 1;
   const overtimeHours = getApprovedOvertimeHours(contractor.overtimeRequests, periodMonth, periodYear);
-  const overtimeAmount = overtimeHours * (dailyRateSnap / HOURS_PER_DAY) * otMultiplierSnap;
-  const netAmount = (billableExact * dailyRateSnap) + overtimeAmount;
+  const overtimeAmount = overtimeHours * (basis.dayRate / HOURS_PER_DAY) * otMultiplierSnap;
+  const netAmount = Math.max(0, basis.baseAmount - deductions) + overtimeAmount;
   const currency = contractor.currency ?? 'AUD';
   const currencySnapRate = await getExchangeRate(currency);
   const netAmountAud = netAmount * currencySnapRate;
@@ -208,6 +238,8 @@ export async function regeneratePayslip(payslipId: string): Promise<{ id: string
       overtimeHours,
       overtimeAmount,
       otMultiplierSnap,
+      payModelSnap: basis.model,
+      baseSalarySnap: basis.baseSalary,
       netAmount,
       currency,
       currencySnapRate,

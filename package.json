@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:leave": "npx tsx scripts/test-leave-engine.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test:pay": "npx tsx scripts/test-pay-basis.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
